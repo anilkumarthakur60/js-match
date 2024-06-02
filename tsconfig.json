@@ -33,5 +33,6 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue","./src/index.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue","./src/index.ts","src/**/*.test.ts"],
+  "exclude": ["node_modules"]
 }
