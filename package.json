@@ -1,7 +1,7 @@
 {
   "name": "@anilkumarthakur/match",
   "private": false,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "main": "dist/index.umd.js",
   "module": "dist/index.es.js",
@@ -25,13 +25,13 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+   
+  },
+  "peerDependencies": {
     "@types/node": "^20.13.0",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
     "vite-plugin-dts": "^3.9.1"
   },
-  "peerDependencies": {},
-  "dependencies": {
-    "-": "^0.0.1"
-  }
+  "dependencies": {}
 }
