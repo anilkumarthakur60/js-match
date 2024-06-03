@@ -1,4 +1,4 @@
-import {Match} from "./types/main";
+import { Match } from "./types/main";
 
 const match = <T, U>(value: T) => {
     const cases: Match<T, U>[] = [];
@@ -7,7 +7,7 @@ const match = <T, U>(value: T) => {
     const matcher = {
         on: (expected: T, action: () => U) => {
             const predicate = (val: T) => val === expected;
-            cases.push({predicate, action});
+            cases.push({ predicate, action });
             return matcher;
         },
         otherwise: (action: () => U): U => {
@@ -18,7 +18,7 @@ const match = <T, U>(value: T) => {
     };
 
     const execute = (): U => {
-        for (const {predicate, action} of cases) {
+        for (const { predicate, action } of cases) {
             if (predicate(value)) {
                 return action();
             }
