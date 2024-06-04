@@ -28,8 +28,7 @@
     "format": "prettier --write src/",
     "lint-format":"npm run lint && npm run format"
   },
-  "devDependencies": {},
-  "dependencies": {
+  "devDependencies": {
     "@rushstack/eslint-patch": "^1.8.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.13.0",
@@ -43,6 +42,8 @@
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
     "vite-plugin-dts": "^3.9.1"
+  },
+  "dependencies": {
   },
   "peerDependencies": {},
   "keywords": [
