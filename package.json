@@ -1,7 +1,7 @@
 {
   "name": "@anilkumarthakur/match",
   "private": false,
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "main": "dist/index.umd.js",
   "module": "dist/index.es.js",
@@ -44,5 +44,26 @@
     "vite": "^5.2.0",
     "vite-plugin-dts": "^3.9.1"
   },
-  "peerDependencies": {}
+  "peerDependencies": {},
+  "keywords": [
+    "match",
+    "typescript",
+    "javascript",
+    "conditional",
+    "logic",
+    "pattern-matching",
+    "php-match",
+    "npm",
+    "library",
+    "match-expression",
+    "match-library",
+    "match-js",
+    "match-js-library",
+    "match-js-npm",
+    "match-js-package",
+    "match-js-package-npm",
+    "match-js-package-npm-library",
+    "php match expression in javascript",
+    "php match in javascript"
+  ]
 }
