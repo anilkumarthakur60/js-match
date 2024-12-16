@@ -44,14 +44,31 @@ const handleCheck = (types: string) => {
         })
         .on('spinner', () => {
             console.log('----------------spinner output--', 'spinner');
-            return 'light';
+            return 'spinner';
         })
         .otherwise(() => {
             console.log('----------------otherwise output:', 'otherwise');
             return 'otherwise';
         });
 }
+
+// Example of using match with various data types
+const complexCheck = (input: unknown) => {
+    return match(input)
+        .on('hello', () => 'Matched hello')
+        .on(42, () => 'Matched number 42')
+        .on(true, () => 'Matched true')
+        .on(null, () => 'Matched null')
+        .on(undefined, () => 'Matched undefined')
+        .otherwise(() => 'No match found');
+}
+
 console.log(handleCheck('success'));
+console.log(complexCheck('hello'));
+console.log(complexCheck(42));
+console.log(complexCheck(true));
+console.log(complexCheck(null));
+console.log(complexCheck('unmatched'));
 ```
 ## Contributing
 Feel free to submit issues and pull requests. Contributions are welcome!
