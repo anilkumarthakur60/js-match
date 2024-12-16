@@ -1,5 +1,5 @@
 import { match } from './match'
-import { Match as matchType } from './types/main'
+import { MatchChain as matchType, Handler as handlerType } from './types/main'
 export { match }
 
-export type { matchType }
+export type { matchType, handlerType }
