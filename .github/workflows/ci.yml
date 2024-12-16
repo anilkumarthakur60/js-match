@@ -1,5 +1,4 @@
 name: CI
-
 on:
   push:
     branches: [ "*" ]
@@ -19,17 +18,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'  # Enable caching for npm packages
+          cache: 'npm'
           
-      - run: npm ci  # Use npm ci for faster and more reliable installs
+      - run: npm ci
 
       - run: npm run build
 
-      - run: npm test  # Simplified command for running tests
-
-      - name: Upload build artifacts
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.node-version }}
-          path: dist/
+      - run: npm test
