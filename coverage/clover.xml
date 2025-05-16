@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1747363784710" clover="3.2.0">
-  <project timestamp="1747363784710" name="All files">
+<coverage generated="1747363950427" clover="3.2.0">
+  <project timestamp="1747363950427" name="All files">
     <metrics statements="22" coveredstatements="21" conditionals="5" coveredconditionals="5" methods="7" coveredmethods="7" elements="34" coveredelements="33" complexity="0" loc="22" ncloc="22" packages="1" files="1" classes="1"/>
     <file name="Matcher.ts" path="/Users/anilthakur/Desktop/projects/js/js-match/src/Matcher.ts">
       <metrics statements="22" coveredstatements="21" conditionals="5" coveredconditionals="5" methods="7" coveredmethods="7"/>
