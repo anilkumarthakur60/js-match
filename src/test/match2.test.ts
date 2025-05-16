@@ -12,7 +12,6 @@ describe('match function with various data types and complex use cases', () => {
     // We'll try multiple subjects and ensure the correct handlers match
     // by reusing the same chain logic with different inputs.
     // We'll store results in an array and check them afterwards.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const results: any[] = []
 
     const runMatch = (subject: unknown) => {
