@@ -35,11 +35,14 @@ import { Handler, MatchChain } from './types/main'
 
 // export { match }
 
-function match<T = unknown>(subject: any): MatchChain<T> {
-  const cases: Array<{ value: any; handler: Handler<T> }> = []
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyType = any
+
+function match<T = AnyType>(subject: AnyType): MatchChain<T> {
+  const cases: Array<{ value: AnyType; handler: Handler<T> }> = []
 
   return {
-    on(value: any, handler: Handler<T>) {
+    on(value: AnyType, handler: Handler<T>) {
       cases.push({ value, handler })
       return this
     },
