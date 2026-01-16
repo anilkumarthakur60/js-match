@@ -14,6 +14,7 @@ dist-ssr
 
 # Vite cache
 .vitepress/
+!docs/.vitepress/theme/
 
 # VitePress
 docs/.vitepress/cache
