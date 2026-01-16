@@ -27,7 +27,6 @@ docs/.vitepress/dist
 *.njsproj
 *.sln
 *.sw?
-package-lock.json
 yarn.lock
 bun.lockb
 coverage
