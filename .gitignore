@@ -33,3 +33,4 @@ docs/.vitepress/dist
 yarn.lock
 bun.lockb
 coverage
+git.md
