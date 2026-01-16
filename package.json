@@ -37,14 +37,17 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
-    "lint-format": "npm run lint && npm run format"
+    "lint-format": "npm run lint && npm run format",
+    "release": "changeset publish --no-commit"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@rushstack/eslint-patch": "^1.8.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.13.0",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
+    "changesets": "^1.0.2",
     "eslint": "^8.57.0",
     "jest": "^29.7.0",
     "prettier": "^3.2.5",
@@ -55,9 +58,6 @@
     "vite-plugin-dts": "^3.9.1",
     "vitepress": "^1.0.0"
   },
-  "dependencies": {
-  },
-  "peerDependencies": {},
   "keywords": [
     "match",
     "match-expression",
