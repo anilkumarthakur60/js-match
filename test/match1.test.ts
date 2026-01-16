@@ -1,4 +1,4 @@
-import { match } from '../match'
+import { match } from '../src/Matcher'
 
 describe('match function', () => {
   test('executes the matching handler when subject matches an on condition', () => {

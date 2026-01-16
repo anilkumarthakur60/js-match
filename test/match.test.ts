@@ -1,4 +1,4 @@
-import { match } from '../match.ts'
+import { match } from '../src/Matcher'
 
 describe('match function', () => {
   it('should return the correct action for the matched case', () => {
@@ -7,7 +7,6 @@ describe('match function', () => {
       .on('not matched', () => 'not matched')
       .otherwise(() => 'otherwise')
     expect(result).toBe('matched')
-    expect(result).not.toBe('not matched')
   })
 
   it('should return the otherwise action if no cases are matched', () => {

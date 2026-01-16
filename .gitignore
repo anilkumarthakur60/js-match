@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Vite cache
+.vitepress/
+!docs/.vitepress/theme/
+
+# VitePress
+docs/.vitepress/cache
+docs/.vitepress/dist
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,7 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-package-lock.json
 yarn.lock
 bun.lockb
-.idea
+coverage
+git.md
