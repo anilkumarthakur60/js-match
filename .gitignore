@@ -13,7 +13,6 @@ dist-ssr
 *.local
 
 # VitePress
-.vitepress/
 docs/.vitepress/cache
 docs/.vitepress/dist
 
