@@ -1,12 +1,12 @@
-// export type Match<T, U> = {
-//   predicate: (val: T) => boolean
-//   action: () => U
-// }
-
+/**
+ * Handler function type - returns a value of type T
+ */
 export type Handler<T> = () => T
 
-export interface MatchChain<T> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on: (value: any, handler: Handler<T>) => MatchChain<T>
-  otherwise: (handler: Handler<T>) => T
+/**
+ * MatchChain interface for method chaining pattern
+ */
+export interface MatchChain<TSubject, TResult> {
+  on: (value: TSubject, handler: Handler<TResult>) => MatchChain<TSubject, TResult>
+  otherwise: (handler: Handler<TResult>) => TResult
 }

@@ -1,13 +1,20 @@
 {
   "name": "@anilkumarthakur/match",
+  "description": "PHP-style match expressions for JavaScript/TypeScript",
   "private": false,
   "version": "0.0.7",
   "type": "module",
+  "license": "MIT",
   "main": "dist/index.umd.js",
   "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anilkumarthakur/js-match"
+  },
   "files": [
-    "/dist"
+    "dist",
+    "test"
   ],
   "publishConfig": {
     "access": "public"
@@ -21,12 +28,13 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
-    "lint-format":"npm run lint && npm run format"
+    "lint-format": "npm run lint && npm run format"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.8.0",
@@ -48,23 +56,12 @@
   "peerDependencies": {},
   "keywords": [
     "match",
-    "typescript",
-    "javascript",
-    "conditional",
-    "logic",
+    "match-expression",
     "pattern-matching",
     "php-match",
-    "npm",
-    "library",
-    "match-expression",
-    "match-library",
-    "match-js",
-    "match-js-library",
-    "match-js-npm",
-    "match-js-package",
-    "match-js-package-npm",
-    "match-js-package-npm-library",
-    "php match expression in javascript",
-    "php match in javascript"
+    "typescript",
+    "javascript",
+    "switch-alternative",
+    "conditional"
   ]
 }

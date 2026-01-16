@@ -1,4 +1,4 @@
-import { match } from '../Matcher'
+import { match } from '../src/Matcher'
 
 describe('match function', () => {
   it('should return the correct action for the matched case', () => {

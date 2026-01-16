@@ -1,4 +1,4 @@
-import { match, UnhandledMatchError } from '../Matcher'
+import { match, UnhandledMatchError } from '../src/Matcher'
 const consoleLogMock = jest.spyOn(console, 'log').mockImplementation()
 
 beforeEach(() => {
