@@ -1,4 +1,5 @@
-import { match, UnhandledMatchError, Matcher } from '../src/Matcher'
+import { match, Matcher } from '../src/matcher'
+import { UnhandledMatchError } from '../src/errors'
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -132,12 +133,13 @@ describe('Match Expression - Comprehensive Test Suite', () => {
         ).toBe('zero')
       })
 
-      test('+0 matches -0', () => {
+      test('+0 does not match -0 (Object.is semantics)', () => {
+        // Object.is(+0, -0) === false, so they don't match
         expect(
           match(+0)
             .on(-0, () => 'zero matched')
             .otherwise(() => 'default')
-        ).toBe('zero matched')
+        ).toBe('default')
       })
 
       test('matches negative number', () => {
@@ -164,12 +166,15 @@ describe('Match Expression - Comprehensive Test Suite', () => {
         ).toBe('default')
       })
 
-      test('0 subject matches -0 key', () => {
+      test('0 and -0 are distinct with Object.is', () => {
+        // Object.is(0, -0) === false
+        // To match both, use a predicate or match both explicitly
         expect(
           match(0)
             .on(-0, () => 'minus zero')
+            .on(0, () => 'plus zero')
             .otherwise(() => 'default')
-        ).toBe('minus zero')
+        ).toBe('plus zero')
       })
 
       test('matches Infinity', () => {
@@ -482,12 +487,14 @@ describe('Match Expression - Comprehensive Test Suite', () => {
       expect(result).toBe('X')
     })
 
-    test('duplicate keys overwrite previous handlers', () => {
+    test('first matching handler wins (eager execution)', () => {
+      // With eager execution, the first match executes immediately
+      // Subsequent .on() calls for the same key are ignored
       const result = match('key')
         .on('key', () => 'first')
         .on('key', () => 'second')
         .otherwise(() => 'default')
-      expect(result).toBe('second')
+      expect(result).toBe('first')
     })
 
     test('same handler used for multiple keys', () => {
@@ -498,6 +505,206 @@ describe('Match Expression - Comprehensive Test Suite', () => {
         .otherwise(() => 'default')
       expect(result).toBe('handled')
       expect(handler).toHaveBeenCalledTimes(1)
+    })
+
+    test('eager execution - side effects run immediately without otherwise', () => {
+      // This is the key behavior change: handlers execute immediately on match
+      let sideEffect = 'initial'
+      match('team-section')
+        .on('hero-section', () => (sideEffect = 'hero'))
+        .on('team-section', () => (sideEffect = 'team'))
+      // Side effect should have run without calling otherwise() or valueOf()
+      expect(sideEffect).toBe('team')
+    })
+
+    test('eager execution - only first match executes', () => {
+      const calls: string[] = []
+      match('a')
+        .on('a', () => calls.push('first'))
+        .on('a', () => calls.push('second'))
+        .on('b', () => calls.push('b'))
+      expect(calls).toEqual(['first'])
+    })
+
+    test('isMatched property reflects match state', () => {
+      const matcher1 = match('found').on('found', () => 'yes')
+      expect(matcher1.isMatched).toBe(true)
+
+      const matcher2 = match('missing').on('other', () => 'no')
+      expect(matcher2.isMatched).toBe(false)
+    })
+  })
+
+  // ============================================================================
+  // PREDICATE / GUARD MATCHING TESTS
+  // ============================================================================
+  describe('Predicate Matching', () => {
+    test('predicate - matches when function returns true', () => {
+      const result = match(10)
+        .on((v) => v > 5, () => 'GT5')
+        .otherwise(() => 'DEFAULT')
+      expect(result).toBe('GT5')
+    })
+
+    test('predicate - skips when function returns false', () => {
+      const result = match(3)
+        .on((v) => v > 5, () => 'GT5')
+        .otherwise(() => 'DEFAULT')
+      expect(result).toBe('DEFAULT')
+    })
+
+    test('predicate - first matching predicate wins', () => {
+      const result = match(10)
+        .on((v) => v > 5, () => 'GT5')
+        .on((v) => v > 8, () => 'GT8')
+        .otherwise(() => 'DEFAULT')
+      expect(result).toBe('GT5')
+    })
+
+    test('predicate - range matching', () => {
+      const grade = (score: number) =>
+        match(score)
+          .on((n) => n >= 90, () => 'A')
+          .on((n) => n >= 80, () => 'B')
+          .on((n) => n >= 70, () => 'C')
+          .on((n) => n >= 60, () => 'D')
+          .otherwise(() => 'F')
+
+      expect(grade(95)).toBe('A')
+      expect(grade(85)).toBe('B')
+      expect(grade(75)).toBe('C')
+      expect(grade(65)).toBe('D')
+      expect(grade(55)).toBe('F')
+    })
+
+    test('predicate - type checking', () => {
+      const checkType = (val: unknown) =>
+        match(val)
+          .on((v: unknown) => typeof v === 'string', () => 'string')
+          .on((v: unknown) => typeof v === 'number', () => 'number')
+          .on((v: unknown) => Array.isArray(v), () => 'array')
+          .otherwise(() => 'other')
+
+      expect(checkType('hello')).toBe('string')
+      expect(checkType(42)).toBe('number')
+      expect(checkType([1, 2, 3])).toBe('array')
+      expect(checkType({})).toBe('other')
+    })
+
+    test('predicate - mixed with literal matching', () => {
+      const result = match(5)
+        .on(5, () => 'exact')
+        .on((v) => v > 0, () => 'positive')
+        .otherwise(() => 'default')
+      expect(result).toBe('exact')
+    })
+
+    test('predicate - literal after predicate', () => {
+      const result = match(10)
+        .on((v) => v < 0, () => 'negative')
+        .on(10, () => 'ten')
+        .otherwise(() => 'default')
+      expect(result).toBe('ten')
+    })
+
+    test('predicate - with side effects', () => {
+      let sideEffect = ''
+      match('admin')
+        .on((v) => v === 'admin', () => (sideEffect = 'is admin'))
+        .on((v) => v === 'user', () => (sideEffect = 'is user'))
+
+      expect(sideEffect).toBe('is admin')
+    })
+
+    test('predicate - object shape checking', () => {
+      interface User {
+        role: string
+        active: boolean
+      }
+      const user: User = { role: 'admin', active: true }
+
+      const result = match(user)
+        .on((u) => u.role === 'admin' && u.active, () => 'active admin')
+        .on((u) => u.role === 'admin', () => 'inactive admin')
+        .otherwise(() => 'not admin')
+
+      expect(result).toBe('active admin')
+    })
+  })
+
+  // ============================================================================
+  // OBJECT.IS MATCHING TESTS
+  // ============================================================================
+  describe('Object.is Matching', () => {
+    test('Object.is - NaN matches NaN', () => {
+      const result = match(NaN)
+        .on(NaN, () => 'matched NaN')
+        .otherwise(() => 'no match')
+      expect(result).toBe('matched NaN')
+    })
+
+    test('Object.is - +0 and -0 are different', () => {
+      const matchPositiveZero = match(+0)
+        .on(-0, () => 'negative zero')
+        .on(+0, () => 'positive zero')
+        .otherwise(() => 'default')
+      // Note: Object.is(+0, -0) is false, but +0 matches +0
+      expect(matchPositiveZero).toBe('positive zero')
+    })
+
+    test('onAny - uses Object.is for NaN', () => {
+      const result = match(NaN)
+        .onAny([1, NaN, 3], () => 'found')
+        .otherwise(() => 'not found')
+      expect(result).toBe('found')
+    })
+  })
+
+  // ============================================================================
+  // RUN() METHOD TESTS
+  // ============================================================================
+  describe('run() Method', () => {
+    test('run - returns true when matched', () => {
+      const didMatch = match('a')
+        .on('a', () => 'matched')
+        .run()
+      expect(didMatch).toBe(true)
+    })
+
+    test('run - returns false when not matched', () => {
+      const didMatch = match('x')
+        .on('a', () => 'matched')
+        .run()
+      expect(didMatch).toBe(false)
+    })
+
+    test('run - side effects execute before run()', () => {
+      let executed = false
+      const didMatch = match('trigger')
+        .on('trigger', () => {
+          executed = true
+        })
+        .run()
+      expect(executed).toBe(true)
+      expect(didMatch).toBe(true)
+    })
+
+    test('run - no side effects when no match', () => {
+      let executed = false
+      const didMatch = match('other')
+        .on('trigger', () => {
+          executed = true
+        })
+        .run()
+      expect(executed).toBe(false)
+      expect(didMatch).toBe(false)
+    })
+
+    test('run - with predicate matching', () => {
+      const didMatch = match(10)
+        .on((v) => v > 5, () => 'big')
+        .run()
+      expect(didMatch).toBe(true)
     })
   })
 
@@ -1070,6 +1277,54 @@ describe('Match Expression - Comprehensive Test Suite', () => {
         .otherwise(() => 'default')
       expect(result).toBe('A')
     })
+
+    test('typed handleCheck example', () => {
+      type CheckResult = { ok: boolean; code: number; warn?: boolean }
+
+      const handleCheck = (check: string): CheckResult => {
+        return match<string, CheckResult>(check)
+          .on('error', () => ({ ok: false, code: 500 }))
+          .on('warn', () => ({ ok: true, code: 200, warn: true }))
+          .on('ok', () => ({ ok: true, code: 200 }))
+          .otherwise(() => ({ ok: false, code: 400 }))
+      }
+
+      const errorResult = handleCheck('error')
+      expect(errorResult.ok).toBe(false)
+      expect(errorResult.code).toBe(500)
+
+      const warnResult = handleCheck('warn')
+      expect(warnResult.ok).toBe(true)
+      expect(warnResult.warn).toBe(true)
+
+      const okResult = handleCheck('ok')
+      expect(okResult.ok).toBe(true)
+      expect(okResult.code).toBe(200)
+
+      const unknownResult = handleCheck('unknown')
+      expect(unknownResult.ok).toBe(false)
+      expect(unknownResult.code).toBe(400)
+    })
+
+    test('type safety with object return type', () => {
+      interface ApiResponse {
+        status: string
+        data?: unknown
+        error?: string
+      }
+
+      const getResponse = (code: number): ApiResponse => {
+        return match<number, ApiResponse>(code)
+          .on(200, () => ({ status: 'success', data: {} }))
+          .on(404, () => ({ status: 'error', error: 'Not found' }))
+          .on(500, () => ({ status: 'error', error: 'Server error' }))
+          .otherwise(() => ({ status: 'unknown' }))
+      }
+
+      expect(getResponse(200).status).toBe('success')
+      expect(getResponse(404).error).toBe('Not found')
+      expect(getResponse(999).status).toBe('unknown')
+    })
   })
 
   // ============================================================================
@@ -1142,16 +1397,55 @@ describe('Match Expression - Comprehensive Test Suite', () => {
       expect(complexCheck('unmatched')).toBe('No match found')
     })
 
-    test('FizzBuzz example', () => {
+    test('FizzBuzz example using modulo matching', () => {
+      // Note: This pattern uses match(0) to check if remainder is 0
+      // Order matters - more specific checks must come last since Map overwrites
       const fizzbuzz = (num: number) =>
-        match(0)
-          .on(num % 15, () => 'FizzBuzz')
-          .on(num % 3, () => 'Fizz')
-          .on(num % 5, () => 'Buzz')
+        match(num % 15 === 0 ? 'fizzbuzz' : num % 3 === 0 ? 'fizz' : num % 5 === 0 ? 'buzz' : 'num')
+          .on('fizzbuzz', () => 'FizzBuzz')
+          .on('fizz', () => 'Fizz')
+          .on('buzz', () => 'Buzz')
           .otherwise(() => num.toString())
+      expect(fizzbuzz(15)).toBe('FizzBuzz')
       expect(fizzbuzz(3)).toBe('Fizz')
       expect(fizzbuzz(5)).toBe('Buzz')
       expect(fizzbuzz(7)).toBe('7')
+    })
+
+    test('FizzBuzz with conditional match(true)', () => {
+      // When using match(true), only one condition should be true at a time
+      // Use early return pattern or most specific check first
+      const fizzBuzz = (n: number): string => {
+        // Check most specific first
+        if (n % 15 === 0) {
+          return match<boolean, string>(true)
+            .on(true, () => 'FizzBuzz')
+            .otherwise(() => '')
+        }
+        return match<boolean, string>(true)
+          .on(n % 3 === 0, () => 'Fizz')
+          .on(n % 5 === 0, () => 'Buzz')
+          .otherwise(() => n.toString())
+      }
+
+      expect(fizzBuzz(15)).toBe('FizzBuzz')
+      expect(fizzBuzz(9)).toBe('Fizz')
+      expect(fizzBuzz(5)).toBe('Buzz')
+      expect(fizzBuzz(7)).toBe('7')
+    })
+
+    test('FizzBuzz with simple if-else (for comparison)', () => {
+      const fizzBuzz = (n: number): string => {
+        if (n % 15 === 0) return 'FizzBuzz'
+        if (n % 3 === 0) return 'Fizz'
+        if (n % 5 === 0) return 'Buzz'
+        return n.toString()
+      }
+
+      expect(fizzBuzz(15)).toBe('FizzBuzz')
+      expect(fizzBuzz(9)).toBe('Fizz')
+      expect(fizzBuzz(5)).toBe('Buzz')
+      expect(fizzBuzz(7)).toBe('7')
     })
 
     test('days in month example', () => {

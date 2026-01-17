@@ -2,13 +2,142 @@
 
 Master advanced techniques with @anilkumarthakur/match!
 
+## Predicate Matching
+
+Use predicate functions for powerful conditional logic:
+
+```typescript
+import { match } from '@anilkumarthakur/match'
+
+// Range matching
+const category = (age: number): string => {
+  return match(age)
+    .on(
+      (n) => n < 13,
+      () => 'Child'
+    )
+    .on(
+      (n) => n >= 13 && n < 18,
+      () => 'Teen'
+    )
+    .on(
+      (n) => n >= 18 && n < 65,
+      () => 'Adult'
+    )
+    .on(
+      (n) => n >= 65,
+      () => 'Senior'
+    )
+    .otherwise(() => 'Unknown')
+}
+
+console.log(category(8)) // "Child"
+console.log(category(16)) // "Teen"
+console.log(category(70)) // "Senior"
+```
+
+Predicates enable:
+
+- **Range checks**: `(n) => n > 5 && n < 10`
+- **Type checks**: `(v) => typeof v === 'string'`
+- **Complex logic**: `(obj) => obj.role === 'admin' && obj.isActive`
+- **Array checks**: `(arr) => arr.length > 0`
+
+## Type Checking with Predicates
+
+Guard against different types:
+
+```typescript
+const typeLabel = (val: unknown): string => {
+  return match(val)
+    .on(
+      (v: unknown) => typeof v === 'string',
+      () => 'String'
+    )
+    .on(
+      (v: unknown) => typeof v === 'number',
+      () => 'Number'
+    )
+    .on(
+      (v: unknown) => Array.isArray(v),
+      () => 'Array'
+    )
+    .on(
+      (v: unknown) => v === null,
+      () => 'Null'
+    )
+    .on(
+      (v: unknown) => v === undefined,
+      () => 'Undefined'
+    )
+    .otherwise(() => 'Object')
+}
+
+console.log(typeLabel('hello')) // "String"
+console.log(typeLabel([1, 2, 3])) // "Array"
+console.log(typeLabel(null)) // "Null"
+```
+
+## Mixing Literals and Predicates
+
+Combine literal matching with predicates:
+
+```typescript
+const processScore = (score: number | string): string => {
+  return match(score)
+    .on('N/A', () => 'Not available')
+    .on('PENDING', () => 'Awaiting score')
+    .on(
+      (val: unknown) => typeof val === 'number' && val > 80,
+      () => 'High'
+    )
+    .on(
+      (val: unknown) => typeof val === 'number' && val > 50,
+      () => 'Medium'
+    )
+    .otherwise(() => 'Low')
+}
+
+console.log(processScore('N/A')) // "Not available"
+console.log(processScore(90)) // "High"
+console.log(processScore(60)) // "Medium"
+```
+
+## Object Shape Checking
+
+Use predicates for structural validation:
+
+```typescript
+interface User {
+  role: string
+  permissions: string[]
+}
+
+const checkAccess = (user: unknown): string => {
+  return match(user)
+    .on(
+      (u: unknown): u is User =>
+        typeof u === 'object' && u !== null && 'role' in u && u.role === 'admin',
+      () => 'Admin access'
+    )
+    .on(
+      (u: unknown): u is User =>
+        typeof u === 'object' &&
+        u !== null &&
+        'permissions' in u &&
+        Array.isArray((u as any).permissions) &&
+        (u as any).permissions.includes('write'),
+      () => 'Write access'
+    )
+    .otherwise(() => 'Read-only access')
+}
+```
+
 ## Nested Matching
 
 Compose match expressions by nesting them:
 
 ```typescript
-import { match } from '@anilkumarthakur/match'
-
 const getUserAccess = (userType: string, status: string): string => {
   return match(userType)
     .on('admin', () => {
@@ -32,7 +161,7 @@ console.log(getUserAccess('user', 'suspended')) // "User - Blocked"
 
 ## Conditional Logic with `match(true)`
 
-Use `match(true)` for conditional logic:
+Use `match(true)` with predicates for readable conditionals:
 
 ```typescript
 const getAgeGroup = (age: number): string => {
@@ -46,26 +175,28 @@ const getAgeGroup = (age: number): string => {
 
 console.log(getAgeGroup(5)) // "Child"
 console.log(getAgeGroup(16)) // "Teen"
-console.log(getAgeGroup(25)) // "Adult"
 console.log(getAgeGroup(70)) // "Senior"
 ```
 
-## Combining `onAny()` with `on()`
+## Combining `onAny()` with Predicates
 
-Mix multiple values with single values:
+Mix multiple values with predicate functions:
 
 ```typescript
 const getPriority = (code: string): string => {
   return match(code)
-    .onAny(['CRITICAL', 'URGENT'], () => 'P0 - Immediate action')
+    .onAny(['CRITICAL', 'URGENT'], () => 'P0 - Immediate')
     .onAny(['HIGH', 'IMPORTANT'], () => 'P1 - Action required')
-    .on('MEDIUM', () => 'P2 - Plan soon')
+    .on(
+      (c) => c.length > 10,
+      () => 'P2 - Long description'
+    )
     .on('LOW', () => 'P3 - Eventually')
-    .otherwise(() => 'Unknown priority')
+    .otherwise(() => 'Unknown')
 }
 
-console.log(getPriority('CRITICAL')) // "P0 - Immediate action"
-console.log(getPriority('HIGH')) // "P1 - Action required"
+console.log(getPriority('CRITICAL')) // "P0 - Immediate"
+console.log(getPriority('some-long-description')) // "P2 - Long description"
 ```
 
 ## Composing with Object Methods
@@ -92,12 +223,6 @@ const getPermissions = (user: User): string[] => {
 
   return basePermissions
 }
-
-const admin: User = { id: '1', role: 'admin', isActive: true }
-const inactiveUser: User = { id: '2', role: 'user', isActive: false }
-
-console.log(getPermissions(admin)) // ['read', 'write', 'delete', 'manage_users']
-console.log(getPermissions(inactiveUser)) // ['read']
 ```
 
 ## Chaining Handlers
@@ -128,15 +253,11 @@ const processOrder = (status: string) => {
       timeout: 0
     }))
 
-  // Use the result
   return {
     ...handler,
     priority: handler.retry ? 'high' : 'low'
   }
 }
-
-console.log(processOrder('pending'))
-// { action: 'verify_payment', retry: true, timeout: 5000, priority: 'high' }
 ```
 
 ## Match as Factory
@@ -184,6 +305,33 @@ const fetchUserData = async (userId: string) => {
 
 // Usage
 const data = await fetchUserData('current')
+```
+
+## Using `run()` for Side Effects
+
+Execute patterns for side effects only:
+
+```typescript
+const handleUserAction = (action: string, userId: string) => {
+  const handled = match(action)
+    .on('login', () => {
+      localStorage.setItem('lastLogin', new Date().toISOString())
+      logEvent('user.login', { userId })
+    })
+    .on('logout', () => {
+      localStorage.removeItem('session')
+      logEvent('user.logout', { userId })
+    })
+    .on('delete', () => {
+      removeUserData(userId)
+      logEvent('user.delete', { userId })
+    })
+    .run()
+
+  if (!handled) {
+    console.warn(`Unknown action: ${action}`)
+  }
+}
 ```
 
 ## Pattern with Maps/Objects

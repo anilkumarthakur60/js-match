@@ -25,6 +25,44 @@ const handler: Handler<string> = () => 'result'
 const numHandler: Handler<number> = () => 42
 ```
 
+### `Predicate<T>`
+
+Predicate function type for guard/conditional matching.
+
+```typescript
+type Predicate<T> = (value: T) => boolean
+```
+
+A function that takes a subject value and returns a boolean indicating whether the match condition is satisfied.
+
+**Type Parameter:**
+
+- `T` - The type of the subject being matched
+
+**Example:**
+
+```typescript
+const isPositive: Predicate<number> = (n) => n > 0
+const isString: Predicate<unknown> = (v) => typeof v === 'string'
+const isLongString: Predicate<string> = (s) => s.length > 10
+
+// Used with match
+match(10)
+  .on(isPositive, () => 'Positive')
+  .otherwise(() => 'Not positive')
+
+// Inline predicates
+match(score)
+  .on(
+    (n) => n >= 90,
+    () => 'A'
+  )
+  .on(
+    (n) => n >= 80,
+    () => 'B'
+  )
+```
+
 ### `MatcherHandler<T>`
 
 Internal handler type (same as `Handler<T>`).
@@ -41,7 +79,10 @@ Interface for match chain operations.
 
 ```typescript
 export interface MatchChain<TSubject, TResult> {
-  on: (value: TSubject, handler: Handler<TResult>) => MatchChain<TSubject, TResult>
+  on: (
+    pattern: TSubject | Predicate<TSubject>,
+    handler: Handler<TResult>
+  ) => MatchChain<TSubject, TResult>
   otherwise: (handler: Handler<TResult>) => TResult
 }
 ```

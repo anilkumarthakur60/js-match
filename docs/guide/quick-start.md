@@ -15,16 +15,74 @@ const result = match('success')
 console.log(result) // "Operation successful!"
 ```
 
-## The Four Methods
+## Key Features
 
-### 1. `on()` - Single Case
+### Eager Execution
 
-Add a case to match against:
+Handlers execute immediately when matched—no need for `.otherwise()` for side effects:
+
+```typescript
+let status = 'pending'
+
+match('completed')
+  .on('completed', () => {
+    status = 'done'
+  })
+  .on('error', () => {
+    status = 'failed'
+  })
+// status is now 'done' - handler executed immediately!
+
+console.log(status) // "done"
+```
+
+### Predicate/Guard Matching
+
+Use functions for flexible conditional logic:
+
+```typescript
+const grade = match(score)
+  .on(
+    (n) => n >= 90,
+    () => 'A'
+  )
+  .on(
+    (n) => n >= 80,
+    () => 'B'
+  )
+  .on(
+    (n) => n >= 70,
+    () => 'C'
+  )
+  .otherwise(() => 'F')
+
+console.log(grade(85)) // "B"
+```
+
+### NaN-Safe Matching
+
+Uses `Object.is()` for correct `NaN` matching:
+
+```typescript
+match(NaN)
+  .on(NaN, () => 'matched NaN!')
+  .otherwise(() => 'no match')
+// Result: "matched NaN!"
+```
+
+## The Five Core Methods
+
+### 1. `on()` - Single Case or Predicate
+
+Match a literal value or use a predicate function:
 
 ```typescript
 match(status)
-  .on('active', () => 'User is active')
-  .on('inactive', () => 'User is inactive')
+  .on('active', () => 'Active') // literal
+  .on(
+    (s) => s.includes('error'),
+    () => 'Error'
+  ) // predicate
 ```
 
 ### 2. `onAny()` - Multiple Cases
@@ -39,7 +97,7 @@ match(code)
 
 ### 3. `otherwise()` / `default()` - Default Handler
 
-Set a default handler and execute:
+Set a fallback handler and execute:
 
 ```typescript
 const result = match(value)
@@ -55,15 +113,26 @@ Execute without a default (throws if no match):
 try {
   const result = match(value)
     .on('case1', () => 'result1')
-    .valueOf() // Must have a match!
+    .valueOf()
 } catch (error) {
   console.error('No match found')
 }
 ```
 
+### 5. `run()` - Side Effects Only
+
+Return boolean indicating if a match occurred:
+
+```typescript
+const didMatch = match(action)
+  .on('save', () => saveData())
+  .on('delete', () => deleteData())
+  .run() // true if matched, false otherwise
+```
+
 ## Complete Example
 
-Here's a more practical example:
+Here's a practical example with multiple features:
 
 ```typescript
 import { match } from '@anilkumarthakur/match'

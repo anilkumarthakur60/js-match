@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@anilkumarthakur/match)](https://www.npmjs.com/package/@anilkumarthakur/match)
 [![license](https://img.shields.io/npm/l/@anilkumarthakur/match)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-245-brightgreen)](test/)
+[![tests](https://img.shields.io/badge/tests-127-brightgreen)](test/)
 [![coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](#)
 
 PHP-style match expressions for JavaScript/TypeScript with 100% type safety and comprehensive test coverage.
@@ -14,8 +14,8 @@ PHP-style match expressions for JavaScript/TypeScript with 100% type safety and 
 ✨ **Type-Safe**: Full TypeScript support with generic types for subject and result  
 🎯 **Readable**: Clean, expressive syntax inspired by PHP match expressions  
 🚀 **Fast**: Efficient equality-based matching using JavaScript's Map  
-📦 **Lightweight**: Zero dependencies, ~1.2KB gzipped  
-🧪 **Well-Tested**: 245 comprehensive tests with 100% code coverage  
+📦 **Lightweight**: Zero dependencies, only ~0.5KB gzipped (ES module)  
+🧪 **Well-Tested**: 127 comprehensive tests with 100% code coverage  
 🔗 **Chainable**: Fluent API for method chaining  
 🌍 **Cross-Platform**: Works in Node.js and browsers (ESM + UMD)
 
@@ -384,11 +384,11 @@ const result3 = match<Status, string>('success')
 
 - ⚡ Uses JavaScript Map for O(1) lookup time
 - 💾 Lazy evaluation - only matched handler executes
-- 📦 ~1.2KB gzipped bundle size
+- 📦 Bundle sizes: ES (1.03 kB / 0.46 kB gzipped), UMD (0.99 kB / 0.51 kB gzipped)
 
 ## Testing
 
-The library includes 245 comprehensive tests with 100% code coverage:
+The library includes 127 comprehensive tests with 100% code coverage:
 
 ```bash
 # Run all tests

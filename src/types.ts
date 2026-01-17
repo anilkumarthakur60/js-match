@@ -1,16 +1,4 @@
 /**
- * Internal handler function type for match expression results
- *
- * Used internally by the Matcher class to store and execute handler functions.
- * This is an alias for Handler<T> with the same signature.
- *
- * @template T The return type of the handler function
- *
- * @internal Internal use only
- */
-export type MatcherHandler<T> = () => T
-
-/**
  * Handler function type for match expression results
  *
  * A handler is a function that takes no parameters and returns a value
@@ -25,6 +13,30 @@ export type MatcherHandler<T> = () => T
  * ```
  */
 export type Handler<T> = () => T
+
+/**
+ * Predicate function type for guard/conditional matching
+ *
+ * A predicate is a function that takes the subject value and returns a boolean
+ * indicating whether the match condition is satisfied.
+ *
+ * @template T The type of the subject being matched
+ *
+ * @example
+ * ```typescript
+ * const isPositive: Predicate<number> = (n) => n > 0
+ * const isString: Predicate<unknown> = (v) => typeof v === 'string'
+ * ```
+ */
+export type Predicate<T> = (value: T) => boolean
+
+/**
+ * Alias for Handler<T>
+ *
+ * @template T The return type of the handler function
+ * @deprecated Use Handler<T> instead
+ */
+export type MatcherHandler<T> = Handler<T>
 
 /**
  * Interface representing a chainable match expression

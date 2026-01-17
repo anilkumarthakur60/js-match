@@ -13,13 +13,36 @@ match(subject)
 Where:
 
 - `subject`: The value to match against
-- `value`: The value to compare using strict equality (===)
+- `value`: The value to compare using `Object.is()`, OR a predicate function `(val) => boolean`
 - `result`: What to return if matched
 - `defaultResult`: What to return if nothing matches
 
-## Using `on()`
+## Eager Execution
 
-Add individual cases with `.on()`:
+Handlers execute **immediately** when matched—you don't need `.otherwise()` or `.valueOf()` for side effects:
+
+```typescript
+import { match } from '@anilkumarthakur/match'
+
+let tab = 'hero'
+
+match('team-section')
+  .on('hero-section', () => {
+    tab = 'hero'
+  })
+  .on('team-section', () => {
+    tab = 'team'
+  })
+// tab is now 'team' - handler executed immediately!
+
+console.log(tab) // "team"
+```
+
+This is especially useful in Vue and React for reactive state updates.
+
+## Literal Matching with `on()`
+
+Match specific values:
 
 ```typescript
 import { match } from '@anilkumarthakur/match'
@@ -36,9 +59,41 @@ console.log(getUserRole('admin')) // "Full access"
 console.log(getUserRole('unknown')) // "Unknown role"
 ```
 
+## Predicate/Guard Matching
+
+Use functions for flexible conditional logic (JS extension beyond PHP):
+
+```typescript
+const grade = (score: number): string => {
+  return match(score)
+    .on(
+      (n) => n >= 90,
+      () => 'A'
+    )
+    .on(
+      (n) => n >= 80,
+      () => 'B'
+    )
+    .on(
+      (n) => n >= 70,
+      () => 'C'
+    )
+    .otherwise(() => 'F')
+}
+
+console.log(grade(95)) // "A"
+console.log(grade(85)) // "B"
+```
+
+Predicates enable:
+
+- Range matching: `(n) => n > 5`
+- Type checking: `(v) => typeof v === 'string'`
+- Complex logic: `(obj) => obj.role === 'admin' && obj.active`
+
 ## Using `onAny()`
 
-Match multiple values to the same handler:
+Match multiple literal values to the same handler:
 
 ```typescript
 const getStatusCategory = (code: number): string => {
@@ -57,7 +112,7 @@ console.log(getStatusCategory(999)) // "Unknown"
 
 ## Using `otherwise()` and `default()`
 
-Both methods do the same thing - set a default and execute:
+Both methods set a default and execute:
 
 ```typescript
 // Using otherwise()
@@ -92,9 +147,27 @@ try {
 }
 ```
 
+## Using `run()`
+
+Return a boolean indicating if a match occurred. Useful for side-effect-only patterns:
+
+```typescript
+const didMatch = match(action)
+  .on('save', () => saveData())
+  .on('delete', () => deleteData())
+  .on('refresh', () => refreshUI())
+  .run()
+
+if (didMatch) {
+  console.log('Action handled')
+} else {
+  console.log('Unknown action')
+}
+```
+
 ## Method Chaining
 
-All methods return `this` for chaining (except `otherwise()`, `default()`, and `valueOf()` which execute):
+Chain `.on()` calls (all return `this`):
 
 ```typescript
 const result = match(status)
@@ -117,8 +190,27 @@ const matcher = (value: unknown) => {
     .on(true, () => 'matched boolean')
     .on(null, () => 'matched null')
     .on(undefined, () => 'matched undefined')
+    .on(NaN, () => 'matched NaN')
     .otherwise(() => 'matched something else')
 }
+```
+
+## Object.is() Semantics
+
+Matches use `Object.is()` for correctness, so `NaN` matches `NaN`:
+
+```typescript
+match(NaN)
+  .on(NaN, () => 'matched!')
+  .otherwise(() => 'no match')
+// Result: "matched!"
+
+// And +0 !== -0
+match(+0)
+  .on(-0, () => 'negative zero')
+  .on(+0, () => 'positive zero')
+  .otherwise(() => 'default')
+// Result: "positive zero"
 ```
 
 ## Handlers
@@ -143,7 +235,7 @@ match(user)
     return greeting
   })
 
-// Async handlers (results are awaited by caller)
+// Async handlers
 match(status)
   .on('loading', async () => {
     const data = await fetchData()
@@ -152,6 +244,24 @@ match(status)
   .otherwise(async () => {
     return 'No data'
   })
+```
+
+## First Match Wins
+
+Once a match is found, subsequent `.on()` calls are ignored:
+
+```typescript
+let calls = 0
+match('x')
+  .on('x', () => {
+    calls++
+  })
+  .on('x', () => {
+    calls++
+  }) // ignored
+  .otherwise(() => {})
+
+console.log(calls) // 1
 ```
 
 ## Next Steps

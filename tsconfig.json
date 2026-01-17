@@ -32,7 +32,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "noEmit": false,
+    "noEmit": true,
     "outDir": "./dist",
     /* Experimental */
     "experimentalDecorators": true,
