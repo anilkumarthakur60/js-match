@@ -25,34 +25,7 @@
  * @packageDocumentation
  */
 
-import { match } from './match'
+export { match, Matcher } from './matcher'
+export { UnhandledMatchError } from './errors'
+export type { Handler, MatchChain, MatcherHandler } from './types'
 
-/**
- * Create a new match expression
- *
- * @template TSubject The type of the value being matched
- * @template TResult The return type of handler functions
- *
- * @param {TSubject} subject The value to match against
- * @returns {Matcher<TSubject, TResult>} A Matcher instance
- *
- * @see {@link Matcher} For complete API documentation
- */
-export { match }
-
-/**
- * Core classes and types for the match expression library
- */
-export { Matcher, UnhandledMatchError } from './Matcher'
-
-/**
- * Type for match handler functions
- *
- * @template T The return type of the handler
- *
- * @example
- * ```typescript
- * const handler: Handler<string> = () => 'result'
- * ```
- */
-export type { Handler, MatchChain, MatcherHandler } from './types/main'

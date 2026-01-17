@@ -1,4 +1,5 @@
-import { match, UnhandledMatchError, Matcher } from '../src/Matcher'
+import { match, Matcher } from '../src/matcher'
+import { UnhandledMatchError } from '../src/errors'
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -1070,6 +1071,54 @@ describe('Match Expression - Comprehensive Test Suite', () => {
         .otherwise(() => 'default')
       expect(result).toBe('A')
     })
+
+    test('typed handleCheck example', () => {
+      type CheckResult = { ok: boolean; code: number; warn?: boolean }
+
+      const handleCheck = (check: string): CheckResult => {
+        return match<string, CheckResult>(check)
+          .on('error', () => ({ ok: false, code: 500 }))
+          .on('warn', () => ({ ok: true, code: 200, warn: true }))
+          .on('ok', () => ({ ok: true, code: 200 }))
+          .otherwise(() => ({ ok: false, code: 400 }))
+      }
+
+      const errorResult = handleCheck('error')
+      expect(errorResult.ok).toBe(false)
+      expect(errorResult.code).toBe(500)
+
+      const warnResult = handleCheck('warn')
+      expect(warnResult.ok).toBe(true)
+      expect(warnResult.warn).toBe(true)
+
+      const okResult = handleCheck('ok')
+      expect(okResult.ok).toBe(true)
+      expect(okResult.code).toBe(200)
+
+      const unknownResult = handleCheck('unknown')
+      expect(unknownResult.ok).toBe(false)
+      expect(unknownResult.code).toBe(400)
+    })
+
+    test('type safety with object return type', () => {
+      interface ApiResponse {
+        status: string
+        data?: unknown
+        error?: string
+      }
+
+      const getResponse = (code: number): ApiResponse => {
+        return match<number, ApiResponse>(code)
+          .on(200, () => ({ status: 'success', data: {} }))
+          .on(404, () => ({ status: 'error', error: 'Not found' }))
+          .on(500, () => ({ status: 'error', error: 'Server error' }))
+          .otherwise(() => ({ status: 'unknown' }))
+      }
+
+      expect(getResponse(200).status).toBe('success')
+      expect(getResponse(404).error).toBe('Not found')
+      expect(getResponse(999).status).toBe('unknown')
+    })
   })
 
   // ============================================================================
@@ -1142,16 +1191,55 @@ describe('Match Expression - Comprehensive Test Suite', () => {
       expect(complexCheck('unmatched')).toBe('No match found')
     })
 
-    test('FizzBuzz example', () => {
+    test('FizzBuzz example using modulo matching', () => {
+      // Note: This pattern uses match(0) to check if remainder is 0
+      // Order matters - more specific checks must come last since Map overwrites
       const fizzbuzz = (num: number) =>
-        match(0)
-          .on(num % 15, () => 'FizzBuzz')
-          .on(num % 3, () => 'Fizz')
-          .on(num % 5, () => 'Buzz')
+        match(num % 15 === 0 ? 'fizzbuzz' : num % 3 === 0 ? 'fizz' : num % 5 === 0 ? 'buzz' : 'num')
+          .on('fizzbuzz', () => 'FizzBuzz')
+          .on('fizz', () => 'Fizz')
+          .on('buzz', () => 'Buzz')
           .otherwise(() => num.toString())
+      expect(fizzbuzz(15)).toBe('FizzBuzz')
       expect(fizzbuzz(3)).toBe('Fizz')
       expect(fizzbuzz(5)).toBe('Buzz')
       expect(fizzbuzz(7)).toBe('7')
+    })
+
+    test('FizzBuzz with conditional match(true)', () => {
+      // When using match(true), only one condition should be true at a time
+      // Use early return pattern or most specific check first
+      const fizzBuzz = (n: number): string => {
+        // Check most specific first
+        if (n % 15 === 0) {
+          return match<boolean, string>(true)
+            .on(true, () => 'FizzBuzz')
+            .otherwise(() => '')
+        }
+        return match<boolean, string>(true)
+          .on(n % 3 === 0, () => 'Fizz')
+          .on(n % 5 === 0, () => 'Buzz')
+          .otherwise(() => n.toString())
+      }
+
+      expect(fizzBuzz(15)).toBe('FizzBuzz')
+      expect(fizzBuzz(9)).toBe('Fizz')
+      expect(fizzBuzz(5)).toBe('Buzz')
+      expect(fizzBuzz(7)).toBe('7')
+    })
+
+    test('FizzBuzz with simple if-else (for comparison)', () => {
+      const fizzBuzz = (n: number): string => {
+        if (n % 15 === 0) return 'FizzBuzz'
+        if (n % 3 === 0) return 'Fizz'
+        if (n % 5 === 0) return 'Buzz'
+        return n.toString()
+      }
+
+      expect(fizzBuzz(15)).toBe('FizzBuzz')
+      expect(fizzBuzz(9)).toBe('Fizz')
+      expect(fizzBuzz(5)).toBe('Buzz')
+      expect(fizzBuzz(7)).toBe('7')
     })
 
     test('days in month example', () => {

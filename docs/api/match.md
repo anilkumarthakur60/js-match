@@ -3,7 +3,7 @@
 ## Signature
 
 ```typescript
-function match<TSubject, TResult>(subject: TSubject): Matcher<TSubject, TResult>
+function match<TSubject, TResult = unknown>(subject: TSubject): Matcher<TSubject, TResult>
 ```
 
 ## Description
@@ -12,15 +12,15 @@ Creates a new match expression for the given subject value. This is the main ent
 
 ## Type Parameters
 
-- `TSubject` - The type of the value being matched
-- `TResult` - The return type of handler functions
+- `TSubject` - The type of the value being matched (inferred from subject)
+- `TResult` - The return type of handler functions (defaults to `unknown`, specify for type safety)
 
-These are usually inferred automatically, but can be specified explicitly.
+These are usually inferred automatically, but `TResult` should be specified explicitly when you need type-safe return values.
 
 ## Parameters
 
-| Name | Type | Description |
-|------|------|-------------|
+| Name      | Type       | Description                           |
+| --------- | ---------- | ------------------------------------- |
 | `subject` | `TSubject` | The value to match against (any type) |
 
 ## Returns
