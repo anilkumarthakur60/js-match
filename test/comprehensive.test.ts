@@ -483,12 +483,14 @@ describe('Match Expression - Comprehensive Test Suite', () => {
       expect(result).toBe('X')
     })
 
-    test('duplicate keys overwrite previous handlers', () => {
+    test('first matching handler wins (eager execution)', () => {
+      // With eager execution, the first match executes immediately
+      // Subsequent .on() calls for the same key are ignored
       const result = match('key')
         .on('key', () => 'first')
         .on('key', () => 'second')
         .otherwise(() => 'default')
-      expect(result).toBe('second')
+      expect(result).toBe('first')
     })
 
     test('same handler used for multiple keys', () => {
@@ -499,6 +501,33 @@ describe('Match Expression - Comprehensive Test Suite', () => {
         .otherwise(() => 'default')
       expect(result).toBe('handled')
       expect(handler).toHaveBeenCalledTimes(1)
+    })
+
+    test('eager execution - side effects run immediately without otherwise', () => {
+      // This is the key behavior change: handlers execute immediately on match
+      let sideEffect = 'initial'
+      match('team-section')
+        .on('hero-section', () => (sideEffect = 'hero'))
+        .on('team-section', () => (sideEffect = 'team'))
+      // Side effect should have run without calling otherwise() or valueOf()
+      expect(sideEffect).toBe('team')
+    })
+
+    test('eager execution - only first match executes', () => {
+      const calls: string[] = []
+      match('a')
+        .on('a', () => calls.push('first'))
+        .on('a', () => calls.push('second'))
+        .on('b', () => calls.push('b'))
+      expect(calls).toEqual(['first'])
+    })
+
+    test('isMatched property reflects match state', () => {
+      const matcher1 = match('found').on('found', () => 'yes')
+      expect(matcher1.isMatched).toBe(true)
+
+      const matcher2 = match('missing').on('other', () => 'no')
+      expect(matcher2.isMatched).toBe(false)
     })
   })
 

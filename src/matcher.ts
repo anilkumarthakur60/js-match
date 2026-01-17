@@ -3,30 +3,41 @@ import { UnhandledMatchError } from './errors'
 
 /**
  * Matcher class implementing PHP-style match expressions for TypeScript/JavaScript
- * Supports exhaustive matching with type safety and O(1) lookup performance
+ * Supports exhaustive matching with type safety and eager execution.
+ *
+ * When a match is found via `.on()` or `.onAny()`, the handler executes immediately
+ * (PHP-like behavior). Subsequent `.on()` calls are no-ops once matched.
  */
 export class Matcher<TSubject, TResult> {
   private readonly subject: TSubject
-  private readonly matches: Map<TSubject, Handler<TResult>> = new Map()
-  private defaultHandler?: Handler<TResult>
+  private matched: boolean = false
+  private result: TResult | undefined = undefined
 
   constructor(subject: TSubject) {
     this.subject = subject
   }
 
   on(value: TSubject, handler: Handler<TResult>): this {
-    this.matches.set(value, handler)
+    if (!this.matched && this.subject === value) {
+      this.matched = true
+      this.result = handler()
+    }
     return this
   }
 
   onAny(values: readonly TSubject[], handler: Handler<TResult>): this {
-    values.forEach((value) => this.matches.set(value, handler))
+    if (!this.matched && values.includes(this.subject)) {
+      this.matched = true
+      this.result = handler()
+    }
     return this
   }
 
   otherwise(handler: Handler<TResult>): TResult {
-    this.defaultHandler = handler
-    return this.evaluate()
+    if (!this.matched) {
+      return handler()
+    }
+    return this.result as TResult
   }
 
   default(handler: Handler<TResult>): TResult {
@@ -34,16 +45,17 @@ export class Matcher<TSubject, TResult> {
   }
 
   valueOf(): TResult {
-    return this.evaluate()
+    if (!this.matched) {
+      throw new UnhandledMatchError(this.subject)
+    }
+    return this.result as TResult
   }
 
-  private evaluate(): TResult {
-    if (this.matches.has(this.subject)) {
-      return this.matches.get(this.subject)!()
-    } else if (this.defaultHandler) {
-      return this.defaultHandler()
-    }
-    throw new UnhandledMatchError(this.subject)
+  /**
+   * Check if a match has been found
+   */
+  get isMatched(): boolean {
+    return this.matched
   }
 }
 
