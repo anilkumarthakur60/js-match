@@ -17,7 +17,7 @@ const getRole = (role: string) => {
     .otherwise(() => 'Unknown role')
 }
 
-console.log(getRole('admin'))  // "Full access"
+console.log(getRole('admin')) // "Full access"
 ```
 
 ### Number Matching
@@ -32,7 +32,7 @@ const getStatus = (code: number) => {
     .otherwise(() => 'Unknown')
 }
 
-console.log(getStatus(200))  // "OK"
+console.log(getStatus(200)) // "OK"
 ```
 
 ### Multiple Values
@@ -46,8 +46,8 @@ const getCategory = (code: number) => {
     .otherwise(() => 'Unknown')
 }
 
-console.log(getCategory(200))  // "Success"
-console.log(getCategory(400))  // "Client Error"
+console.log(getCategory(200)) // "Success"
+console.log(getCategory(400)) // "Client Error"
 ```
 
 ## Complete Examples
@@ -105,8 +105,8 @@ const handleHttpStatus = (code: number): Response => {
     }))
 }
 
-console.log(handleHttpStatus(200))  // { code: 200, message: 'Success', retry: false }
-console.log(handleHttpStatus(429))  // { code: 429, message: 'Temporary Error', retry: true }
+console.log(handleHttpStatus(200)) // { code: 200, message: 'Success', retry: false }
+console.log(handleHttpStatus(429)) // { code: 429, message: 'Temporary Error', retry: true }
 ```
 
 ### Notification System
@@ -155,7 +155,7 @@ const getNotification = (type: string): Notification => {
 
 // Usage
 const notification = getNotification('success')
-console.log(`[${notification.icon}] ${notification.type}`)  // [✓] success
+console.log(`[${notification.icon}] ${notification.type}`) // [✓] success
 ```
 
 ### FizzBuzz with Match
@@ -169,10 +169,10 @@ const fizzBuzz = (n: number): string => {
     .otherwise(() => n.toString())
 }
 
-console.log(fizzBuzz(3))   // "Fizz"
-console.log(fizzBuzz(5))   // "Buzz"
-console.log(fizzBuzz(15))  // "FizzBuzz"
-console.log(fizzBuzz(7))   // "7"
+console.log(fizzBuzz(3)) // "Fizz"
+console.log(fizzBuzz(5)) // "Buzz"
+console.log(fizzBuzz(15)) // "FizzBuzz"
+console.log(fizzBuzz(7)) // "7"
 ```
 
 ### Data Processing
@@ -209,6 +209,7 @@ console.log(processData({ id: '1', status: 'new', priority: 'high' }))
 
 - [String Matching Example](/examples/string-matching)
 - [HTTP Status Codes Example](/examples/http-status-codes)
+- [Predicate/Guard Matching Example](/examples/predicate-matching)
 - [Nested Matching Example](/examples/nested-matching)
 - [Conditional Logic Example](/examples/conditional-logic)
 - [Real-World Use Cases Example](/examples/real-world)
