@@ -27,4 +27,4 @@
 
 export { match, Matcher } from './matcher'
 export { UnhandledMatchError } from './errors'
-export type { Handler, MatchChain, MatcherHandler } from './types'
+export type { Handler, MatchChain, MatcherHandler, Predicate } from './types'

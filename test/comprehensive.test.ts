@@ -133,12 +133,13 @@ describe('Match Expression - Comprehensive Test Suite', () => {
         ).toBe('zero')
       })
 
-      test('+0 matches -0', () => {
+      test('+0 does not match -0 (Object.is semantics)', () => {
+        // Object.is(+0, -0) === false, so they don't match
         expect(
           match(+0)
             .on(-0, () => 'zero matched')
             .otherwise(() => 'default')
-        ).toBe('zero matched')
+        ).toBe('default')
       })
 
       test('matches negative number', () => {
@@ -165,12 +166,15 @@ describe('Match Expression - Comprehensive Test Suite', () => {
         ).toBe('default')
       })
 
-      test('0 subject matches -0 key', () => {
+      test('0 and -0 are distinct with Object.is', () => {
+        // Object.is(0, -0) === false
+        // To match both, use a predicate or match both explicitly
         expect(
           match(0)
             .on(-0, () => 'minus zero')
+            .on(0, () => 'plus zero')
             .otherwise(() => 'default')
-        ).toBe('minus zero')
+        ).toBe('plus zero')
       })
 
       test('matches Infinity', () => {
@@ -528,6 +532,179 @@ describe('Match Expression - Comprehensive Test Suite', () => {
 
       const matcher2 = match('missing').on('other', () => 'no')
       expect(matcher2.isMatched).toBe(false)
+    })
+  })
+
+  // ============================================================================
+  // PREDICATE / GUARD MATCHING TESTS
+  // ============================================================================
+  describe('Predicate Matching', () => {
+    test('predicate - matches when function returns true', () => {
+      const result = match(10)
+        .on((v) => v > 5, () => 'GT5')
+        .otherwise(() => 'DEFAULT')
+      expect(result).toBe('GT5')
+    })
+
+    test('predicate - skips when function returns false', () => {
+      const result = match(3)
+        .on((v) => v > 5, () => 'GT5')
+        .otherwise(() => 'DEFAULT')
+      expect(result).toBe('DEFAULT')
+    })
+
+    test('predicate - first matching predicate wins', () => {
+      const result = match(10)
+        .on((v) => v > 5, () => 'GT5')
+        .on((v) => v > 8, () => 'GT8')
+        .otherwise(() => 'DEFAULT')
+      expect(result).toBe('GT5')
+    })
+
+    test('predicate - range matching', () => {
+      const grade = (score: number) =>
+        match(score)
+          .on((n) => n >= 90, () => 'A')
+          .on((n) => n >= 80, () => 'B')
+          .on((n) => n >= 70, () => 'C')
+          .on((n) => n >= 60, () => 'D')
+          .otherwise(() => 'F')
+
+      expect(grade(95)).toBe('A')
+      expect(grade(85)).toBe('B')
+      expect(grade(75)).toBe('C')
+      expect(grade(65)).toBe('D')
+      expect(grade(55)).toBe('F')
+    })
+
+    test('predicate - type checking', () => {
+      const checkType = (val: unknown) =>
+        match(val)
+          .on((v: unknown) => typeof v === 'string', () => 'string')
+          .on((v: unknown) => typeof v === 'number', () => 'number')
+          .on((v: unknown) => Array.isArray(v), () => 'array')
+          .otherwise(() => 'other')
+
+      expect(checkType('hello')).toBe('string')
+      expect(checkType(42)).toBe('number')
+      expect(checkType([1, 2, 3])).toBe('array')
+      expect(checkType({})).toBe('other')
+    })
+
+    test('predicate - mixed with literal matching', () => {
+      const result = match(5)
+        .on(5, () => 'exact')
+        .on((v) => v > 0, () => 'positive')
+        .otherwise(() => 'default')
+      expect(result).toBe('exact')
+    })
+
+    test('predicate - literal after predicate', () => {
+      const result = match(10)
+        .on((v) => v < 0, () => 'negative')
+        .on(10, () => 'ten')
+        .otherwise(() => 'default')
+      expect(result).toBe('ten')
+    })
+
+    test('predicate - with side effects', () => {
+      let sideEffect = ''
+      match('admin')
+        .on((v) => v === 'admin', () => (sideEffect = 'is admin'))
+        .on((v) => v === 'user', () => (sideEffect = 'is user'))
+
+      expect(sideEffect).toBe('is admin')
+    })
+
+    test('predicate - object shape checking', () => {
+      interface User {
+        role: string
+        active: boolean
+      }
+      const user: User = { role: 'admin', active: true }
+
+      const result = match(user)
+        .on((u) => u.role === 'admin' && u.active, () => 'active admin')
+        .on((u) => u.role === 'admin', () => 'inactive admin')
+        .otherwise(() => 'not admin')
+
+      expect(result).toBe('active admin')
+    })
+  })
+
+  // ============================================================================
+  // OBJECT.IS MATCHING TESTS
+  // ============================================================================
+  describe('Object.is Matching', () => {
+    test('Object.is - NaN matches NaN', () => {
+      const result = match(NaN)
+        .on(NaN, () => 'matched NaN')
+        .otherwise(() => 'no match')
+      expect(result).toBe('matched NaN')
+    })
+
+    test('Object.is - +0 and -0 are different', () => {
+      const matchPositiveZero = match(+0)
+        .on(-0, () => 'negative zero')
+        .on(+0, () => 'positive zero')
+        .otherwise(() => 'default')
+      // Note: Object.is(+0, -0) is false, but +0 matches +0
+      expect(matchPositiveZero).toBe('positive zero')
+    })
+
+    test('onAny - uses Object.is for NaN', () => {
+      const result = match(NaN)
+        .onAny([1, NaN, 3], () => 'found')
+        .otherwise(() => 'not found')
+      expect(result).toBe('found')
+    })
+  })
+
+  // ============================================================================
+  // RUN() METHOD TESTS
+  // ============================================================================
+  describe('run() Method', () => {
+    test('run - returns true when matched', () => {
+      const didMatch = match('a')
+        .on('a', () => 'matched')
+        .run()
+      expect(didMatch).toBe(true)
+    })
+
+    test('run - returns false when not matched', () => {
+      const didMatch = match('x')
+        .on('a', () => 'matched')
+        .run()
+      expect(didMatch).toBe(false)
+    })
+
+    test('run - side effects execute before run()', () => {
+      let executed = false
+      const didMatch = match('trigger')
+        .on('trigger', () => {
+          executed = true
+        })
+        .run()
+      expect(executed).toBe(true)
+      expect(didMatch).toBe(true)
+    })
+
+    test('run - no side effects when no match', () => {
+      let executed = false
+      const didMatch = match('other')
+        .on('trigger', () => {
+          executed = true
+        })
+        .run()
+      expect(executed).toBe(false)
+      expect(didMatch).toBe(false)
+    })
+
+    test('run - with predicate matching', () => {
+      const didMatch = match(10)
+        .on((v) => v > 5, () => 'big')
+        .run()
+      expect(didMatch).toBe(true)
     })
   })
 

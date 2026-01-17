@@ -15,6 +15,22 @@
 export type Handler<T> = () => T
 
 /**
+ * Predicate function type for guard/conditional matching
+ *
+ * A predicate is a function that takes the subject value and returns a boolean
+ * indicating whether the match condition is satisfied.
+ *
+ * @template T The type of the subject being matched
+ *
+ * @example
+ * ```typescript
+ * const isPositive: Predicate<number> = (n) => n > 0
+ * const isString: Predicate<unknown> = (v) => typeof v === 'string'
+ * ```
+ */
+export type Predicate<T> = (value: T) => boolean
+
+/**
  * Alias for Handler<T>
  *
  * @template T The return type of the handler function
