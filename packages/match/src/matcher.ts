@@ -13,7 +13,7 @@ import { UnhandledMatchError } from './errors'
  */
 export class Matcher<TSubject, TResult> {
   private readonly subject: TSubject
-  private matched: boolean = false
+  private matched = false
   private result: TResult | undefined = undefined
 
   constructor(subject: TSubject) {

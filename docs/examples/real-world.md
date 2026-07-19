@@ -10,13 +10,7 @@ import { match } from '@anilkumarthakur/match'
 interface Order {
   id: string
   status:
-    | 'pending'
-    | 'confirmed'
-    | 'processing'
-    | 'shipped'
-    | 'delivered'
-    | 'cancelled'
-    | 'returned'
+    'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned'
   total: number
   paymentMethod: 'card' | 'bank' | 'wallet'
 }

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@anilkumarthakur/match — CDN demo</title>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        max-width: 60rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      pre {
+        background: #f4f4f5;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #18181b;
+          color: #e4e4e7;
+        }
+        pre {
+          background: #27272a;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>@anilkumarthakur/match — CDN demo</h1>
+    <p>
+      No bundler, no build step. The global build exposes everything on
+      <code>JsMatch</code>. In production you would load it from a CDN:
+    </p>
+    <pre><code>&lt;script src="https://unpkg.com/@anilkumarthakur/match"&gt;&lt;/script&gt;</code></pre>
+
+    <h2>Output</h2>
+    <pre id="out">running…</pre>
+
+    <!-- Local build so the demo works straight from the repo. -->
+    <script src="../../packages/match/dist/index.global.js"></script>
+    <script>
+      const { match, UnhandledMatchError } = JsMatch
+      const lines = []
+
+      lines.push(
+        'basic:      ' +
+          match('success')
+            .on('success', () => 'Operation successful!')
+            .otherwise(() => 'Unknown')
+      )
+
+      const describe = (code) =>
+        match(code)
+          .onAny([200, 201, 204], () => 'Success')
+          .onAny([400, 401, 404], () => 'Client error')
+          .onAny([500, 503], () => 'Server error')
+          .otherwise(() => 'Unknown')
+
+      lines.push('onAny:      ' + [200, 404, 503, 999].map(describe).join(', '))
+
+      const bucket = (n) =>
+        match(n)
+          .on(
+            (v) => v < 0,
+            () => 'negative'
+          )
+          .on(
+            (v) => v === 0,
+            () => 'zero'
+          )
+          .on(
+            (v) => v < 10,
+            () => 'small'
+          )
+          .otherwise(() => 'large')
+
+      lines.push('predicates: ' + [-5, 0, 3, 42].map(bucket).join(', '))
+
+      try {
+        match('nope')
+          .on('a', () => 'A')
+          .valueOf()
+      } catch (err) {
+        lines.push(
+          'unmatched:  throws ' +
+            (err instanceof UnhandledMatchError ? 'UnhandledMatchError' : 'unexpected error')
+        )
+      }
+
+      document.getElementById('out').textContent = lines.join('\n')
+    </script>
+  </body>
+</html>

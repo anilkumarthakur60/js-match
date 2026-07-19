@@ -2,57 +2,45 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+
+# Only one release run at a time.
+concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-  id-token: write
-
-concurrency:
-  group: release
-  cancel-in-progress: false
+  contents: write # push version-bump commits / git tags
+  pull-requests: write # open the "Version Packages" PR
+  id-token: write # npm provenance (OIDC)
 
 jobs:
   release:
+    name: Publish to npm
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    name: Release to npm & GitHub
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-          persist-credentials: false
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # When changesets exist -> opens/updates a "Version Packages" PR.
+      # When that PR is merged (no changesets left) -> builds and publishes.
+      # `pnpm release` is `pnpm build && changeset publish`, so dist/ is always
+      # rebuilt immediately before publishing.
+      - name: Create release PR or publish
+        uses: changesets/action@v1
         with:
-          node-version: 20
-          registry-url: 'https://registry.npmjs.org/'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
-        env:
-          CI: true
-
-      - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v4
-        with:
-          semantic_version: 24
-          branches: |
-            [
-              'main'
-            ]
+          version: pnpm version-packages
+          publish: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
