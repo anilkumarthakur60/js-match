@@ -56,15 +56,19 @@ console.log(
     .default(() => 'fell through')
 )
 
-// 5. No default -> throws UnhandledMatchError -------------------------------
+// 5. No default -> get() throws UnhandledMatchError -------------------------
+// (`valueOf()` is the deprecated alias — it doubles as JS's ToPrimitive hook,
+// so coercing a matcher would resolve it implicitly.)
 try {
   match<string, string>('unmatched')
     .on('a', () => 'A')
-    .valueOf()
+    .get()
 } catch (error) {
   console.log(
     'unmatched throws:',
-    error instanceof UnhandledMatchError ? 'UnhandledMatchError' : 'unexpected error'
+    error instanceof UnhandledMatchError ? 'UnhandledMatchError' : 'unexpected error',
+    '| subject:',
+    error instanceof UnhandledMatchError ? String(error.value) : ''
   )
 }
 
