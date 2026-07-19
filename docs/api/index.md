@@ -11,9 +11,11 @@ import {
   match, // Main function
   Matcher, // Class (usually not needed)
   UnhandledMatchError, // Error class
-  Handler, // Type
-  MatchChain, // Interface
-  MatcherHandler // Type (internal)
+  type Handler, // Type
+  type Predicate, // Type
+  type Pattern, // Type
+  type MatchChain, // Interface
+  type MatcherHandler // Type (deprecated alias for Handler)
 } from '@anilkumarthakur/match'
 ```
 
@@ -30,20 +32,25 @@ import {
 
 ### Types
 
-- [`Handler<T>`](/api/types) - Handler function type
-- `MatchChain<TSubject, TResult>` - Interface for method chaining
-- `MatcherHandler<T>` - Internal handler type
+- [`Handler<T>`](/api/types) - Handler function type, `() => T`
+- [`Predicate<T>`](/api/types#predicate-t) - Guard function type, `(value: T) => boolean`
+- [`Pattern<TSubject>`](/api/types#pattern-tsubject) - What `on()` accepts: a literal or a predicate
+- `MatchChain<TSubject, TResult>` - Interface describing the full chain surface
+- `MatcherHandler<T>` - Deprecated alias for `Handler<T>`
 
 ## Quick Reference
 
-| Method                    | Purpose                 | Returns                      |
-| ------------------------- | ----------------------- | ---------------------------- |
-| `match(subject)`          | Create matcher          | `Matcher<TSubject, TResult>` |
-| `.on(value, handler)`     | Add single case         | `this` (for chaining)        |
-| `.onAny(values, handler)` | Add multiple cases      | `this` (for chaining)        |
-| `.otherwise(handler)`     | Set default & execute   | `TResult`                    |
-| `.default(handler)`       | PHP alias for otherwise | `TResult`                    |
-| `.valueOf()`              | Execute without default | `TResult`                    |
+| Method                    | Purpose                             | Returns                      |
+| ------------------------- | ----------------------------------- | ---------------------------- |
+| `match(subject)`          | Create matcher                      | `Matcher<TSubject, TResult>` |
+| `.on(pattern, handler)`   | Add a literal or predicate case     | `this` (for chaining)        |
+| `.onAny(values, handler)` | Add multiple literal cases          | `this` (for chaining)        |
+| `.otherwise(handler)`     | Set default & resolve               | `TResult`                    |
+| `.default(handler)`       | PHP alias for `otherwise()`         | `TResult`                    |
+| `.get()`                  | Resolve without default (may throw) | `TResult`                    |
+| `.valueOf()`              | Deprecated alias for `get()`        | `TResult`                    |
+| `.run()`                  | Resolve to "did anything match?"    | `boolean`                    |
+| `.isMatched`              | Inspect match state (getter)        | `boolean`                    |
 
 ## Method Documentation
 
@@ -63,24 +70,39 @@ Creates a new match expression.
 const matcher = match(statusCode)
 ```
 
-### `.on(value: TSubject, handler: () => TResult): this`
+### `.on(pattern: Pattern<TSubject>, handler: () => TResult): this`
 
-Adds a case to match against using strict equality (===).
+Adds a case. `pattern` is either a literal value, compared with `Object.is()` — **not** `===` — or a
+predicate function `(subject) => boolean`.
 
 **Parameters:**
 
-- `value` - The value to match
-- `handler` - Function to execute if matched
+- `pattern` - A literal value, or a predicate receiving the subject
+- `handler` - Function to execute if matched (invoked with no arguments)
 
 **Returns:** The matcher for chaining
 
 **Example:**
 
 ```typescript
+// Literal
 match(200)
   .on(200, () => 'Success')
   .on(404, () => 'Not Found')
+
+// Predicate
+match(10)
+  .on(
+    (n) => n > 5,
+    () => 'Greater than 5'
+  )
+  .otherwise(() => 'Small')
 ```
+
+::: tip Object.is(), not ===
+`NaN` matches `NaN` and `+0` does not match `-0`. See
+[Object.is() Semantics](/guide/basic-usage#object-is-semantics).
+:::
 
 ### `.onAny(values: readonly TSubject[], handler: () => TResult): this`
 
@@ -111,7 +133,8 @@ Sets default handler and executes the match.
 
 **Returns:** The result from matched handler or default
 
-**Throws:** `UnhandledMatchError` if no match and error handler throws
+**Throws:** Whatever the handler throws. `otherwise()` itself never throws
+`UnhandledMatchError` — supplying a fallback is precisely what rules that out.
 
 **Example:**
 
@@ -139,11 +162,11 @@ const result = match(value)
   .default(() => 'default')
 ```
 
-### `.valueOf(): TResult`
+### `.get(): TResult`
 
-Executes the match without a default handler.
+Resolves the match with no default handler.
 
-**Returns:** The result from matched handler
+**Returns:** The result from the matched handler
 
 **Throws:** `UnhandledMatchError` if no match found
 
@@ -152,7 +175,42 @@ Executes the match without a default handler.
 ```typescript
 const result = match(value)
   .on('case', () => 'result')
-  .valueOf() // Must have matched!
+  .get() // Must have matched!
+```
+
+### `.valueOf(): TResult`
+
+Deprecated alias for `get()`. Prefer `get()`.
+
+`valueOf` is JavaScript's `ToPrimitive` hook, so the engine calls it on any implicit coercion. An
+unmatched chain therefore throws from expressions that never name the method:
+
+```typescript
+const matcher = match(1).on(2, () => 'two')
+matcher + '' // throws UnhandledMatchError: Unhandled match value: 1
+```
+
+### `.run(): boolean`
+
+Resolves the chain to whether anything matched, for side-effect-only patterns. Handlers have
+already run by this point — matching is eager.
+
+**Returns:** `true` if a case matched, `false` otherwise
+
+```typescript
+const handled = match(action)
+  .on('save', () => saveData())
+  .on('delete', () => deleteData())
+  .run()
+```
+
+### `.isMatched: boolean`
+
+Read-only getter for the current match state. Unlike `run()` it does not terminate the chain.
+
+```typescript
+const matcher = match('test').on('test', () => 'matched')
+console.log(matcher.isMatched) // true
 ```
 
 ## Error Handling
@@ -164,7 +222,9 @@ Thrown when no case matches and no default handler is provided.
 **Properties:**
 
 - `name` - Always "UnhandledMatchError"
-- `message` - Contains the unmatched value
+- `message` - A best-effort description of the unmatched value. Deliberately lossy for exotic
+  values (BigInt, symbols, circular structures, `Map`/`Set`), so do not parse it.
+- `value` - The raw unmatched subject, typed `unknown`. Branch on this rather than the message.
 
 **Example:**
 
@@ -172,10 +232,10 @@ Thrown when no case matches and no default handler is provided.
 try {
   match('foo')
     .on('bar', () => 'not matched')
-    .valueOf()
+    .get()
 } catch (error) {
   if (error instanceof UnhandledMatchError) {
-    console.error('No match:', error.message)
+    console.error('No match:', error.value) // "foo"
   }
 }
 ```

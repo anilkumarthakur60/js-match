@@ -19,7 +19,7 @@ Where:
 
 ## Eager Execution
 
-Handlers execute **immediately** when matched—you don't need `.otherwise()` or `.valueOf()` for side effects:
+Handlers execute **immediately** when matched—you don't need `.otherwise()` or `.get()` for side effects:
 
 ```typescript
 import { match } from '@anilkumarthakur/match'
@@ -126,9 +126,9 @@ const result2 = match(value)
   .default(() => 'default')
 ```
 
-## Using `valueOf()`
+## Using `get()`
 
-Execute without a default handler. Throws if no match:
+Resolve without a default handler. Throws `UnhandledMatchError` if nothing matched:
 
 ```typescript
 import { match, UnhandledMatchError } from '@anilkumarthakur/match'
@@ -137,15 +137,30 @@ try {
   const result = match('active')
     .on('active', () => 'Active')
     .on('inactive', () => 'Inactive')
-    .valueOf() // No default!
+    .get() // No default!
 
   console.log(result) // "Active"
 } catch (error) {
   if (error instanceof UnhandledMatchError) {
-    console.error('No match found:', error.message)
+    // `error.value` is the raw subject; the message is lossy for exotic values
+    console.error('No match found for:', error.value)
   }
 }
 ```
+
+### `valueOf()` is a deprecated alias
+
+`valueOf()` does the same thing, but `valueOf` is JavaScript's own `ToPrimitive` hook, so the
+engine calls it on _any_ implicit coercion — string concatenation, `==`, arithmetic, a sort
+comparator. On an unmatched chain that makes `UnhandledMatchError` surface from an expression that
+never mentions the method:
+
+```typescript
+const matcher = match(1).on(2, () => 'two')
+matcher + '' // throws UnhandledMatchError: Unhandled match value: 1
+```
+
+`get()` has no such coupling to the language. Prefer it.
 
 ## Using `run()`
 
@@ -163,6 +178,19 @@ if (didMatch) {
 } else {
   console.log('Unknown action')
 }
+```
+
+## Using `isMatched`
+
+A read-only getter for the same state. Unlike `run()` it does not terminate the chain, so you can
+inspect a matcher and keep adding cases:
+
+```typescript
+const matcher = match('test').on('test', () => 'matched')
+console.log(matcher.isMatched) // true
+
+const unmatched = match('other').on('test', () => 'matched')
+console.log(unmatched.isMatched) // false
 ```
 
 ## Method Chaining
@@ -197,21 +225,63 @@ const matcher = (value: unknown) => {
 
 ## Object.is() Semantics
 
-Matches use `Object.is()` for correctness, so `NaN` matches `NaN`:
+Literal comparison uses `Object.is()`, **not** `===`. The two diverge on exactly two values, and
+both differences are deliberate:
 
 ```typescript
+// NaN matches NaN — `NaN === NaN` is false, `Object.is(NaN, NaN)` is true
 match(NaN)
   .on(NaN, () => 'matched!')
   .otherwise(() => 'no match')
 // Result: "matched!"
 
-// And +0 !== -0
+// +0 and -0 are distinct — `+0 === -0` is true, `Object.is(+0, -0)` is false
 match(+0)
   .on(-0, () => 'negative zero')
   .on(+0, () => 'positive zero')
   .otherwise(() => 'default')
 // Result: "positive zero"
 ```
+
+`onAny()` applies `Object.is()` to each element, so the same rules hold there:
+
+```typescript
+match(NaN)
+  .onAny([1, NaN, 3], () => 'matched in list')
+  .otherwise(() => 'no match')
+// Result: "matched in list"
+```
+
+## Function Subjects
+
+Functions are matched by reference, which means a function-valued subject switches predicate
+matching **off** for the whole chain — the pattern is compared to the subject instead of being
+called:
+
+```typescript
+const fn = () => 'subject'
+
+match(fn)
+  .on(
+    (v) => true,
+    () => 'predicate ran'
+  ) // never invoked
+  .otherwise(() => 'fell through')
+// Result: "fell through"
+
+match(fn)
+  .on(fn, () => 'matched by reference')
+  .otherwise(() => 'no match')
+// Result: "matched by reference"
+```
+
+This is the only way a function value could stay matchable literally, but the failure mode is quiet:
+no error, the case simply does not fire. In TypeScript the `Pattern<TSubject>` type withdraws the
+predicate arm when the subject type is a function, so the mistake is a compile error — but plain
+JavaScript, and subjects whose declared type is a _union_ containing a function, get no warning.
+
+If you need guards over a function value, match on something else: `match(true)` with boolean
+conditions, or a derived key such as `fn.name`.
 
 ## Handlers
 
@@ -223,17 +293,21 @@ match(code)
   .on(200, () => 'OK')
   .otherwise(() => 'Error')
 
-// Complex handlers with logic
+// Complex handlers with logic.
+// Handlers take NO arguments — `Handler<T>` is `() => T`, and every handler is
+// invoked with zero arguments, including the one passed to otherwise(). Close
+// over the subject rather than declaring a parameter for it.
 match(user)
   .on(null, () => {
     console.log('User not found')
     return 'Anonymous'
   })
-  .otherwise((u) => {
-    const greeting = `Hello, ${u.name}`
+  .otherwise(() => {
+    const greeting = `Hello, ${user.name}`
     console.log(greeting)
     return greeting
   })
+// with user = { name: 'Ada' } this logs and returns "Hello, Ada"
 
 // Async handlers
 match(status)

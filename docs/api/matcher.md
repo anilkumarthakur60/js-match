@@ -3,17 +3,22 @@
 ## Signature
 
 ```typescript
-class Matcher<TSubject, TResult> {
+class Matcher<TSubject, TResult> implements MatchChain<TSubject, TResult> {
   constructor(subject: TSubject)
-  on(pattern: TSubject | Predicate<TSubject>, handler: () => TResult): this
+  on(pattern: Pattern<TSubject>, handler: () => TResult): this
   onAny(values: readonly TSubject[], handler: () => TResult): this
   otherwise(handler: () => TResult): TResult
   default(handler: () => TResult): TResult
+  get(): TResult
+  /** @deprecated alias for get() */
   valueOf(): TResult
   run(): boolean
   get isMatched(): boolean
 }
 ```
+
+`Pattern<TSubject>` is `TSubject | Predicate<TSubject>` — except when `TSubject` is itself a
+function type, where the predicate arm is withdrawn. See [Function Subjects](#function-subjects).
 
 ## Description
 
@@ -50,8 +55,8 @@ matcher.on(pattern, handler)
 
 **Parameters:**
 
-- `pattern: TSubject | Predicate<TSubject>` - Literal value (matched with `Object.is()`) or predicate function `(subject) => boolean`
-- `handler: () => TResult` - Function to execute if matched
+- `pattern: Pattern<TSubject>` - Literal value (matched with `Object.is()`) or predicate function `(subject) => boolean`
+- `handler: () => TResult` - Function to execute if matched, invoked with **no** arguments
 
 **Returns:** `this` for method chaining
 
@@ -162,12 +167,12 @@ const result = match(value)
   .default(() => 'default')
 ```
 
-### `valueOf(): TResult`
+### `get(): TResult`
 
-Executes the match without a default handler.
+Resolves the match with no default handler.
 
 ```typescript
-const result = matcher.valueOf()
+const result = matcher.get()
 ```
 
 **Returns:** `TResult` - The result from the matched handler
@@ -177,15 +182,42 @@ const result = matcher.valueOf()
 **Example:**
 
 ```typescript
+import { match, UnhandledMatchError } from '@anilkumarthakur/match'
+
 try {
   const result = match('test')
     .on('test', () => 'matched')
-    .valueOf()
-  console.log(result)
+    .get()
+  console.log(result) // "matched"
 } catch (error) {
-  console.error('No match:', error.message)
+  if (error instanceof UnhandledMatchError) {
+    console.error('No match for:', error.value)
+  }
 }
 ```
+
+### `valueOf(): TResult`
+
+::: warning Deprecated
+Use [`get()`](#get-tresult). `valueOf()` is kept only for backwards compatibility.
+:::
+
+Identical behaviour to `get()`, but `valueOf` is a slot in JavaScript's `ToPrimitive` protocol, so
+the engine invokes it on any implicit coercion — `matcher + 1`, `matcher == x`, a sort comparator,
+string interpolation via `String()`. Two consequences:
+
+- an unmatched chain throws `UnhandledMatchError` from an expression that never mentions the method;
+- a matched chain silently leaks its result into arithmetic and comparisons.
+
+```typescript
+const matched = match(1).on(1, () => 'one')
+matched + '' // "one" — the result leaks out via coercion
+
+const unmatched = match(1).on(2, () => 'two')
+unmatched + '' // throws UnhandledMatchError: Unhandled match value: 1
+```
+
+`get()` has no such coupling to the language, so resolution is always explicit.
 
 ### `run(): boolean`
 
@@ -264,15 +296,45 @@ console.log(calls) // 1
 
 ### Object.is() Semantics
 
-Matching uses `Object.is()` instead of `===`:
+Matching uses `Object.is()` instead of `===`. They diverge on exactly two values:
 
 ```typescript
-match(NaN).on(NaN, () => 'matched!') // Works!
+match(NaN).on(NaN, () => 'matched!') // Works! `NaN === NaN` would be false
 
 match(+0)
   .on(-0, () => 'nope')
   .on(+0, () => 'matched!') // Works! Object.is(+0, -0) === false
 ```
+
+`onAny()` applies `Object.is()` per element, so the same rules hold there.
+
+### Function Subjects
+
+A function-valued subject disables predicate matching for the whole chain: `on()` compares the
+pattern to the subject by reference rather than calling it, because that is the only way a function
+value stays matchable literally.
+
+```typescript
+const fn = () => 'subject'
+
+match(fn)
+  .on(
+    (v) => true,
+    () => 'predicate ran'
+  ) // never invoked — no error, no warning
+  .otherwise(() => 'fell through')
+// Result: "fell through"
+
+match(fn)
+  .on(fn, () => 'matched by reference')
+  .otherwise(() => 'no match')
+// Result: "matched by reference"
+```
+
+`Pattern<TSubject>` encodes this rule in the type system, so in TypeScript passing a predicate for a
+function subject is a compile error. Two gaps remain: plain JavaScript, and subjects whose declared
+type is a _union_ containing a function — there the decision is value-dependent, so both arms stay
+available and the silent fall-through is reachable.
 
 ## Complete Example
 
@@ -316,5 +378,6 @@ console.log(status) // "active"
 ## Related
 
 - [match() Function](/api/match) - The recommended way to create matchers
-- [Predicate Type](/api/types#predicate) - Function predicate type
+- [Predicate Type](/api/types#predicate-t) - Function predicate type
+- [Pattern Type](/api/types#pattern-tsubject) - What `on()` accepts
 - [UnhandledMatchError](/api/types#unhandledmatcherror) - Error thrown on no match

@@ -41,36 +41,56 @@ console.log(status) // "done"
 Use functions for flexible conditional logic:
 
 ```typescript
-const grade = match(score)
-  .on(
-    (n) => n >= 90,
-    () => 'A'
-  )
-  .on(
-    (n) => n >= 80,
-    () => 'B'
-  )
-  .on(
-    (n) => n >= 70,
-    () => 'C'
-  )
-  .otherwise(() => 'F')
+const grade = (score: number): string => {
+  return match(score)
+    .on(
+      (n) => n >= 90,
+      () => 'A'
+    )
+    .on(
+      (n) => n >= 80,
+      () => 'B'
+    )
+    .on(
+      (n) => n >= 70,
+      () => 'C'
+    )
+    .otherwise(() => 'F')
+}
 
+console.log(grade(95)) // "A"
 console.log(grade(85)) // "B"
+console.log(grade(45)) // "F"
 ```
 
-### NaN-Safe Matching
+::: warning A function subject turns predicates off
+When the subject is itself a function, patterns are compared by reference instead of being called —
+otherwise a function value could never be matched literally. The predicate is silently never
+invoked and the case just falls through, with no error. TypeScript withdraws the predicate arm for
+function subjects, but in plain JavaScript nothing warns you. See
+[Function subjects](/guide/basic-usage#function-subjects).
+:::
 
-Uses `Object.is()` for correct `NaN` matching:
+### `Object.is()`, not `===`
+
+Matching uses `Object.is()`, which diverges from `===` on exactly two values:
 
 ```typescript
+// NaN matches NaN — `NaN === NaN` would be false
 match(NaN)
   .on(NaN, () => 'matched NaN!')
   .otherwise(() => 'no match')
 // Result: "matched NaN!"
+
+// +0 and -0 are distinct — `+0 === -0` would be true
+match(+0)
+  .on(-0, () => 'negative zero')
+  .on(+0, () => 'positive zero')
+  .otherwise(() => 'default')
+// Result: "positive zero"
 ```
 
-## The Five Core Methods
+## The Core Methods
 
 ### 1. `on()` - Single Case or Predicate
 
@@ -105,29 +125,51 @@ const result = match(value)
   .otherwise(() => 'default result')
 ```
 
-### 4. `valueOf()` - Execute Without Default
+### 4. `get()` - Resolve Without a Default
 
-Execute without a default (throws if no match):
+Return the matched result with no fallback. Throws `UnhandledMatchError` if nothing matched:
 
 ```typescript
+import { match, UnhandledMatchError } from '@anilkumarthakur/match'
+
 try {
   const result = match(value)
     .on('case1', () => 'result1')
-    .valueOf()
+    .get()
 } catch (error) {
-  console.error('No match found')
+  if (error instanceof UnhandledMatchError) {
+    console.error('No match for', error.value)
+  }
 }
+```
+
+`valueOf()` is a deprecated alias for `get()`. Prefer `get()`: `valueOf` is JavaScript's own
+`ToPrimitive` hook, so the engine calls it on any implicit coercion, and an unmatched chain will
+then throw from an expression that never mentions the method.
+
+```typescript
+const matcher = match(1).on(2, () => 'two')
+matcher + '' // throws UnhandledMatchError: Unhandled match value: 1
 ```
 
 ### 5. `run()` - Side Effects Only
 
-Return boolean indicating if a match occurred:
+Return a boolean indicating if a match occurred:
 
 ```typescript
 const didMatch = match(action)
   .on('save', () => saveData())
   .on('delete', () => deleteData())
   .run() // true if matched, false otherwise
+```
+
+### 6. `isMatched` - Inspect Without Terminating
+
+A read-only getter, so unlike `run()` it does not end the chain:
+
+```typescript
+const matcher = match('test').on('test', () => 'matched')
+console.log(matcher.isMatched) // true
 ```
 
 ## Complete Example

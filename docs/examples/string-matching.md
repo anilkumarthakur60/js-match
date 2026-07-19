@@ -173,7 +173,9 @@ console.log(getStatusBadge('delivered'))
 ```typescript
 type EventType = 'click' | 'change' | 'submit' | 'focus' | 'blur' | 'hover'
 
-const getEventHandler = (eventType: EventType) => {
+// Parameter is `string`, not EventType, so unrecognised event names can reach
+// the fallback. Narrowing it to EventType would make the last call a type error.
+const getEventHandler = (eventType: EventType | string) => {
   return match(eventType)
     .on('click', () => 'handleClick')
     .on('change', () => 'handleChange')
