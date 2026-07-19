@@ -994,6 +994,9 @@ describe('Match Expression - Comprehensive Test Suite', () => {
   // ============================================================================
   // VALUEOF METHOD TESTS
   // ============================================================================
+  // `valueOf` is deprecated in favour of `get()` (it doubles as JS's ToPrimitive
+  // hook), but it remains supported, so this block keeps exercising it.
+  /* eslint-disable @typescript-eslint/no-deprecated */
   describe('valueOf() Method', () => {
     test('valueOf - returns matched handler result', () => {
       const result = match('foo')
@@ -1079,6 +1082,10 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('valueOf - with undefined result', () => {
+      // TypeScript infers `void`, not `undefined`, for `() => undefined` when the
+      // handler's return type is inferred, so the chain's static type trips the
+      // void-expression rule. The runtime value is a plain `undefined`.
+      // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
       const result = match('undef')
         .on('undef', () => undefined)
         .valueOf()
@@ -1593,7 +1600,9 @@ describe('Match Expression - Comprehensive Test Suite', () => {
   // ============================================================================
   describe('Performance and Edge Cases', () => {
     test('handles large number of match arms', () => {
-      let matcher = match('z')
+      // Annotated because reassigning the chain variable needs a fixed result
+      // type; a bare `match('z')` infers `never` and then widens per `.on()`.
+      let matcher = match<string, string>('z')
       for (let i = 0; i < 100; i++) {
         matcher = matcher.on(`key${i}`, () => `matched ${i}`)
       }
@@ -1620,7 +1629,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('Performance test with many handlers', () => {
-      let matcher = match('target')
+      let matcher = match<string, string>('target')
       for (let i = 0; i < 50; i++) {
         matcher = matcher.on(`case-${i}`, () => `result-${i}`)
       }
