@@ -44,8 +44,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Current and recent LTS lines. Keep the low end in step with
-        # engines.node in package.json when the supported floor moves.
+        # Support policy: track Node.js LTS. Test every LTS line still in
+        # support plus the current release; engines.node pins the floor to the
+        # oldest of them. When that line reaches end-of-life, drop it here and
+        # raise engines.node in both package.json files.
         node-version: [22, 24, 26]
     steps:
       - uses: actions/checkout@v4

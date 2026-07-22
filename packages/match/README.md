@@ -578,12 +578,13 @@ Test categories:
 ## Browser Support
 
 Works in all modern browsers. The published `engines.node` range is `>=22`, and the build targets
-ES2022:
+ES2022. The Node floor follows the LTS schedule — it is the oldest LTS line still in maintenance and
+rises as older lines reach end-of-life — so the supported runtimes are:
 
 - Chrome/Edge (latest)
 - Firefox (latest)
 - Safari (latest)
-- Node.js 22+
+- Node.js 22+ (active LTS lines)
 
 ## Contributing
 

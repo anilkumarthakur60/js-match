@@ -38,14 +38,15 @@ specifier resolves to the browser build and everything lands on the `JsMatch` gl
 
 ## Browser Support
 
-Works in all modern browsers. The build targets ES2022, and the published `engines.node` range is
-`>=22` — installing on Node 20 or older fails with `EBADENGINE` (npm) or
-`ERR_PNPM_UNSUPPORTED_ENGINE` (pnpm):
+Works in all modern browsers, and the build targets ES2022. The published `engines.node` range is
+`>=22`; installing on Node 20 or older fails with `EBADENGINE` (npm) or
+`ERR_PNPM_UNSUPPORTED_ENGINE` (pnpm). The floor tracks Node.js LTS — it is the oldest LTS line still
+in maintenance and rises as older lines reach end-of-life — so the supported runtimes are:
 
 - Chrome/Edge (latest)
 - Firefox (latest)
 - Safari (latest)
-- Node.js 22+
+- Node.js 22+ (active LTS lines)
 
 ## Module Systems
 
