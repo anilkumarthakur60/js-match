@@ -23,7 +23,7 @@
     "test": "pnpm --filter @anilkumarthakur/match run test",
     "test:watch": "pnpm --filter @anilkumarthakur/match run test:watch",
     "test:coverage": "pnpm --filter @anilkumarthakur/match run test:coverage",
-    "typecheck": "pnpm -r run typecheck",
+    "typecheck": "pnpm --filter \"./packages/*\" run typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
