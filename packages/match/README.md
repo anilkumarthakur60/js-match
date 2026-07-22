@@ -577,13 +577,13 @@ Test categories:
 
 ## Browser Support
 
-Works in all modern browsers. The published `engines.node` range is `>=20`, and the build targets
+Works in all modern browsers. The published `engines.node` range is `>=22`, and the build targets
 ES2022:
 
 - Chrome/Edge (latest)
 - Firefox (latest)
 - Safari (latest)
-- Node.js 20+
+- Node.js 22+
 
 ## Contributing
 

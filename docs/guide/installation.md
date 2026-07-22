@@ -39,13 +39,13 @@ specifier resolves to the browser build and everything lands on the `JsMatch` gl
 ## Browser Support
 
 Works in all modern browsers. The build targets ES2022, and the published `engines.node` range is
-`>=20` — installing on Node 18 or older fails with `EBADENGINE` (npm) or
+`>=22` — installing on Node 20 or older fails with `EBADENGINE` (npm) or
 `ERR_PNPM_UNSUPPORTED_ENGINE` (pnpm):
 
 - Chrome/Edge (latest)
 - Firefox (latest)
 - Safari (latest)
-- Node.js 20+
+- Node.js 22+
 
 ## Module Systems
 

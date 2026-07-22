@@ -25,12 +25,13 @@ Fix a broken error path, infer result types, ship a browser build, and correct d
 
 **Documentation**
 
-Seventeen corrections, every remaining example re-verified by execution. Highlights: the `type-safety.md` generics example threw a `TypeError`; the UMD install section pointed at a file that does not exist and named the wrong global; "uses JavaScript's `Map` for O(1) lookup" was false in three places (there is no `Map` — matching is linear); the advertised test counts (127 and 245) were both wrong; matching was documented as `===` when it uses `Object.is` (so `NaN` matches `NaN`, and `+0` does not match `-0`); and Node.js 14+ was claimed against an `engines` field of `>=20`.
+Seventeen corrections, every remaining example re-verified by execution. Highlights: the `type-safety.md` generics example threw a `TypeError`; the UMD install section pointed at a file that does not exist and named the wrong global; "uses JavaScript's `Map` for O(1) lookup" was false in three places (there is no `Map` — matching is linear); the advertised test counts (127 and 245) were both wrong; matching was documented as `===` when it uses `Object.is` (so `NaN` matches `NaN`, and `+0` does not match `-0`); and Node.js 14+ was claimed against an `engines` field of `>=22`.
 
 **Packaging**
 
 - **The package no longer ships its test suite.** `files` was `["dist", "test"]`, so every install included the full test file. The tarball is now 8 KB.
 - **A LICENSE file is now included.** The package declared `"license": "MIT"` and listed `LICENSE` in `files`, but no license text existed anywhere in the repository.
+- **The supported Node.js range is now `>=22`.** `engines.node` moved up from `>=20` (Node 20 reached end-of-life), and CI now tests Node 22, 24 and 26. Installing on Node 20 or older fails with `EBADENGINE` (npm) / `ERR_PNPM_UNSUPPORTED_ENGINE` (pnpm).
 
 **Upgrade notes**
 
