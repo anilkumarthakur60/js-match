@@ -140,8 +140,11 @@ console.log(response)
 //   message: 'Too many requests or timeout',
 //   retry: true,
 //   cacheTime: 0,
-//   logLevel: 'error'
+//   logLevel: 'warn'
 // }
+//
+// 429 is handled by the .onAny([408, 429], ...) branch above, which logs at
+// 'warn'; 'error' is the 5xx branch.
 ```
 
 ## Response Action Handler

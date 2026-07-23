@@ -27,4 +27,16 @@
 
 export { match, Matcher } from './matcher'
 export { UnhandledMatchError } from './errors'
-export type { Handler, MatchChain, MatcherHandler, Predicate } from './types'
+// `MatcherHandler` is deprecated in favour of `Handler`, but it stays exported
+// so existing consumers keep compiling — removing it would be a breaking
+// change. The lint rule is right; re-exporting it is the deliberate choice.
+export type {
+  Handler,
+  IsPinned,
+  MatchChain,
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  MatcherHandler,
+  Pattern,
+  Predicate,
+  ResultHandler
+} from './types'

@@ -78,13 +78,14 @@ const badResult = match(code)
 Use `Handler` type for handler functions:
 
 ```typescript
-import { match, Handler } from '@anilkumarthakur/match'
+import { match, type Handler } from '@anilkumarthakur/match'
 
-// Handler<T> is a function that returns T with no parameters
-type ResultHandler = Handler<string> // () => string
+// Handler<T> is a function that returns T with no parameters.
+// Handlers are always invoked with zero arguments — the subject is not passed in.
+type StringHandler = Handler<string> // () => string
 
 const handler: Handler<number> = () => 42
-const result = match('test')
+const result = match<string, number>('test')
   .on('test', handler) // ✓ Correctly typed
   .otherwise(() => 0)
 ```
@@ -139,38 +140,95 @@ config.debug // ✓ boolean
 Create reusable match patterns with generics:
 
 ```typescript
-// Generic handler function
+import { match, type Handler } from '@anilkumarthakur/match'
+
+// Generic handler function.
+// Use onAny() to match a list of values — on() takes exactly one pattern, so
+// spreading an array into it would push the second element into the handler slot.
 const createStatusHandler = <T extends string>(status: T, activeStates: readonly T[]): boolean => {
   return match(status)
-    .on(...(activeStates as [T, ...T[]]), () => true)
+    .onAny(activeStates, () => true)
     .otherwise(() => false)
 }
 
 type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded'
 
 const isPaymentActive: Handler<boolean> = () => {
-  return createStatusHandler('completed' as PaymentStatus, ['completed', 'pending'] as const)
+  return createStatusHandler('completed' as PaymentStatus, ['completed', 'pending'])
 }
 
 console.log(isPaymentActive()) // true
 ```
 
-## MatchChain Type
+## Inferred vs Pinned Result Types
 
-The `MatchChain` interface defines the API:
+`match(subject)` leaves the result type open and unions in each handler's return type, so a chain
+of agreeing handlers resolves to that one type:
 
 ```typescript
-import { match, MatchChain } from '@anilkumarthakur/match'
+const inferred = match('a')
+  .on('a', () => 42)
+  .otherwise(() => 0)
+// inferred: number
 
-// MatchChain<Subject, Result>
-const chain: MatchChain<string, number> = match<string, number>('test').on('test', () => 42)
+const union = match('a')
+  .on('a', () => 42)
+  .otherwise(() => 'none')
+// union: number | string
+```
+
+Passing both type arguments **pins** the result instead, and every handler is then checked against
+that annotation rather than widening it:
+
+```typescript
+const pinned = match<string, number>('a')
+  .on('a', () => 42)
+  .otherwise(() => 0)
+// pinned: number
+
+match<string, number>('a').on('a', () => 'nope') // ✗ Type error
+```
+
+Reach for the pinned form when handlers that disagree should be an error rather than a union.
+
+## MatchChain Type
+
+`MatchChain` is the interface `Matcher` implements, so it describes the whole chain surface —
+`on`, `onAny`, `otherwise`, `default`, `get`, `valueOf`, `run` and `isMatched` — not just
+`on`/`otherwise`:
+
+```typescript
+import { match, type MatchChain } from '@anilkumarthakur/match'
+
+// Fresh chain: no handler has contributed a type yet, so TResult is still its `never` default
+const fresh: MatchChain<string> = match('test')
+
+// Once handlers have run, name the type they accumulated —
+// `MatchChain<string>` would no longer fit, because the chain is now carrying `number`
+const chain: MatchChain<string, number> = match('test').on('test', () => 42)
+
+// Or pin it up front, mirroring the two-argument match() form
+const pinned: MatchChain<string, number> = match<string, number>('test').on('test', () => 42)
 
 // Only allows matching on strings
-// chain.on(123, () => 1) // ✗ Type error - 123 is not a string
+// pinned.on(123, () => 1) // ✗ Type error - 123 is not a string
 
 // Results must be numbers
-const result: number = chain.otherwise(() => 0) // ✓
+const result: number = pinned.otherwise(() => 0) // ✓
 ```
+
+`on()` accepts `Pattern<TSubject>` — a literal `TSubject` **or** a `Predicate<TSubject>` — so
+predicates typecheck through a `MatchChain` annotation just as they do on `Matcher`:
+
+```typescript
+import type { Predicate } from '@anilkumarthakur/match'
+
+const isLong: Predicate<string> = (s) => s.length > 2
+pinned.on(isLong, () => 1) // ✓
+```
+
+The one exception is a function-valued subject, where the predicate arm is withdrawn because a
+predicate could never fire there — see [Function Subjects](/guide/basic-usage#function-subjects).
 
 ## Error Handling with Types
 
@@ -184,10 +242,11 @@ const getValue = (key: string): string => {
     return match(key)
       .on('a', () => 'value a')
       .on('b', () => 'value b')
-      .valueOf() // May throw
+      .get() // May throw
   } catch (error) {
     if (error instanceof UnhandledMatchError) {
-      console.error('Unhandled key:', error.message)
+      // `error.value` is the raw subject, typed `unknown`
+      console.error('Unhandled key:', error.value)
       return 'default'
     }
     throw error // Re-throw other errors

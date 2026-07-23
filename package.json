@@ -1,76 +1,54 @@
 {
-  "name": "@anilkumarthakur/match",
-  "description": "PHP-style match expressions for JavaScript/TypeScript",
-  "private": false,
-  "version": "0.1.3",
+  "name": "js-match",
+  "private": true,
   "type": "module",
+  "description": "Monorepo for @anilkumarthakur/match — PHP-style match expressions for JavaScript/TypeScript.",
   "license": "MIT",
-  "main": "dist/index.umd.js",
-  "module": "dist/index.es.js",
-  "types": "dist/index.d.ts",
+  "author": {
+    "name": "Anil Kumar Thakur",
+    "url": "https://github.com/anilkumarthakur60"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/anilkumarthakur60/js-match.git"
   },
+  "homepage": "https://anilkumarthakur60.github.io/js-match",
   "bugs": {
     "url": "https://github.com/anilkumarthakur60/js-match/issues"
   },
-  "homepage": "https://anilkumarthakur60.github.io/js-match",
-  "files": [
-    "dist",
-    "test"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.es.js",
-      "require": "./dist/index.umd.js"
-    }
-  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "format": "prettier --write src/",
-    "lint-format": "npm run lint && npm run format"
+    "clean": "pnpm -r --parallel run clean",
+    "build": "pnpm --filter @anilkumarthakur/match run build",
+    "build:examples": "pnpm --filter \"./examples/*\" run build",
+    "test": "pnpm --filter @anilkumarthakur/match run test",
+    "test:watch": "pnpm --filter @anilkumarthakur/match run test:watch",
+    "test:coverage": "pnpm --filter @anilkumarthakur/match run test:coverage",
+    "typecheck": "pnpm --filter \"./packages/*\" run typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test",
+    "docs:dev": "pnpm --filter docs run dev",
+    "docs:build": "pnpm --filter docs run build",
+    "docs:preview": "pnpm --filter docs run preview",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm run build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8",
-    "@rushstack/eslint-patch": "^1.15.0",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.9",
-    "@typescript-eslint/eslint-plugin": "^8.53.0",
-    "@typescript-eslint/parser": "^8.53.0",
-    "eslint": "^9.39.2",
-    "jest": "^30.2.0",
-    "prettier": "^3.8.0",
-    "semantic-release": "^25.0.2",
-    "ts-jest": "^29.4.6",
-    "ts-node": "^10.9.2",
+    "@changesets/cli": "^2.31.1",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-perfectionist": "^5.10.0",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.5",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "vite-plugin-dts": "^4.5.4",
-    "vitepress": "^1.6.4"
+    "typescript-eslint": "^8.64.0"
   },
-  "keywords": [
-    "match",
-    "match-expression",
-    "pattern-matching",
-    "php-match",
-    "typescript",
-    "javascript",
-    "switch-alternative",
-    "conditional"
-  ]
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.15.0"
 }

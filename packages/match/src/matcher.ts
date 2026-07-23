@@ -1,4 +1,4 @@
-import type { Handler, Predicate } from './types'
+import type { IsPinned, MatchChain, Pattern, Predicate, ResultHandler } from './types'
 import { UnhandledMatchError } from './errors'
 
 /**
@@ -11,10 +11,20 @@ import { UnhandledMatchError } from './errors'
  * Supports both literal value matching and predicate/guard functions for
  * flexible conditional logic.
  */
-export class Matcher<TSubject, TResult> {
+export class Matcher<
+  TSubject,
+  TResult = never,
+  // Derived, never passed explicitly: it remembers whether the chain started
+  // pinned (`match<S, R>(x)`) or inferring (`match(x)`), which TResult alone can
+  // no longer tell you once a handler has contributed a type to it.
+  TPinned extends boolean = IsPinned<TResult>
+> implements MatchChain<TSubject, TResult, TPinned> {
   private readonly subject: TSubject
-  private matched: boolean = false
-  private result: TResult | undefined = undefined
+  private matched = false
+  // Stored as `unknown` because each handler contributes its own return type to
+  // the accumulated TResult; the class field cannot name them all. Reads cast
+  // back at the (typed) terminal accessors.
+  private result: unknown = undefined
 
   constructor(subject: TSubject) {
     this.subject = subject
@@ -36,7 +46,14 @@ export class Matcher<TSubject, TResult> {
    * match(10).on((n) => n > 5, () => 'greater than 5')
    * ```
    */
-  on(pattern: TSubject | Predicate<TSubject>, handler: Handler<TResult>): this {
+  // Deliberately not `this`: the return type folds this handler's R into
+  // TResult so the chain accumulates its handlers' return types. It is still the
+  // same instance, which is why prefer-return-this-type is suppressed here.
+  on<R = never>(
+    pattern: Pattern<TSubject>,
+    handler: ResultHandler<TResult, R, TPinned>
+    // eslint-disable-next-line @typescript-eslint/prefer-return-this-type
+  ): Matcher<TSubject, TResult | R, TPinned> {
     if (this.matched) return this
 
     // Treat pattern as predicate only if:
@@ -61,7 +78,12 @@ export class Matcher<TSubject, TResult> {
    * @param values - Array of literal values to match against
    * @param handler - Function to execute if any value matches
    */
-  onAny(values: readonly TSubject[], handler: Handler<TResult>): this {
+  // See `on`: the widened return type is what accumulates the result union.
+  onAny<R = never>(
+    values: readonly TSubject[],
+    handler: ResultHandler<TResult, R, TPinned>
+    // eslint-disable-next-line @typescript-eslint/prefer-return-this-type
+  ): Matcher<TSubject, TResult | R, TPinned> {
     if (this.matched) return this
 
     if (values.some((v) => Object.is(this.subject, v))) {
@@ -77,18 +99,18 @@ export class Matcher<TSubject, TResult> {
    * @param handler - Function to execute if no cases matched
    * @returns The result from matched handler or fallback
    */
-  otherwise(handler: Handler<TResult>): TResult {
+  otherwise<R = never>(handler: ResultHandler<TResult, R, TPinned>): TResult | R {
     if (!this.matched) {
       return handler()
     }
-    return this.result as TResult
+    return this.result as TResult | R
   }
 
   /**
    * Alias for otherwise() - PHP compatibility
    */
-  default(handler: Handler<TResult>): TResult {
-    return this.otherwise(handler)
+  default<R = never>(handler: ResultHandler<TResult, R, TPinned>): TResult | R {
+    return this.otherwise<R>(handler)
   }
 
   /**
@@ -97,11 +119,29 @@ export class Matcher<TSubject, TResult> {
    * @throws {UnhandledMatchError} If no match was found
    * @returns The result from the matched handler
    */
-  valueOf(): TResult {
+  get(): TResult {
     if (!this.matched) {
       throw new UnhandledMatchError(this.subject)
     }
     return this.result as TResult
+  }
+
+  /**
+   * Deprecated alias for {@link Matcher.get}
+   *
+   * `valueOf` is a slot in JS's ToPrimitive protocol, so the engine calls it on
+   * any implicit coercion — `matcher + 1`, `matcher == x`, a sort comparator.
+   * That makes an unmatched chain throw UnhandledMatchError from expressions
+   * that never mention the method, and a matched chain leak its result into
+   * arithmetic. The behaviour is kept for backwards compatibility, but reach
+   * for `get()` so resolution is always explicit.
+   *
+   * @deprecated Use {@link Matcher.get} instead
+   * @throws {UnhandledMatchError} If no match was found
+   * @returns The result from the matched handler
+   */
+  valueOf(): TResult {
+    return this.get()
   }
 
   /**
@@ -131,6 +171,15 @@ export class Matcher<TSubject, TResult> {
   }
 }
 
-export function match<TSubject, TResult = unknown>(subject: TSubject): Matcher<TSubject, TResult> {
+/**
+ * Start a match expression.
+ *
+ * The result type defaults to `never` rather than `unknown` so that each
+ * handler's return type is an inference site and the chain accumulates their
+ * union — `match('a').on('a', () => 42)` resolves to `number`, not `unknown`.
+ * Passing both type arguments explicitly (`match<string, string>(x)`) still
+ * pins every handler to that one type, as before.
+ */
+export function match<TSubject, TResult = never>(subject: TSubject): Matcher<TSubject, TResult> {
   return new Matcher<TSubject, TResult>(subject)
 }

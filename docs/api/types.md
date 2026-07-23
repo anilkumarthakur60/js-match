@@ -63,46 +63,84 @@ match(score)
   )
 ```
 
-### `MatcherHandler<T>`
+### `Pattern<TSubject>`
 
-Internal handler type (same as `Handler<T>`).
+The set of patterns `on()` accepts for a given subject type.
 
 ```typescript
-export type MatcherHandler<T> = () => T
+export type Pattern<TSubject> = [TSubject] extends [(...args: never[]) => unknown]
+  ? TSubject
+  : TSubject | Predicate<TSubject>
 ```
 
-**Note:** This is for internal use. Use `Handler<T>` instead.
+Normally a literal `TSubject` **or** a `Predicate<TSubject>`. When the subject type is itself a
+function the predicate arm is withdrawn: a function subject is matched by reference at runtime, so a
+predicate would never be invoked and the case would silently fall through. Encoding the rule in the
+type turns that into a compile error instead.
+
+```typescript
+type P1 = Pattern<number> // number | Predicate<number>
+type P2 = Pattern<() => string> // () => string  (no predicate arm)
+```
+
+The check is wrapped in a tuple so it does not distribute over unions: for `string | (() => void)`
+the runtime decision depends on the value rather than the declared type, so both arms have to stay
+available. See [Function Subjects](/api/matcher#function-subjects).
+
+### `MatcherHandler<T>`
+
+Deprecated alias for `Handler<T>`.
+
+```typescript
+export type MatcherHandler<T> = Handler<T>
+```
+
+**Note:** Kept exported so existing consumers keep compiling. Use `Handler<T>` instead.
 
 ### `MatchChain<TSubject, TResult>`
 
-Interface for match chain operations.
+The interface `Matcher` implements. It describes the **complete** chain surface, and `Matcher`
+declares `implements MatchChain<...>` so the compiler catches drift between the published contract
+and the shipped class.
 
 ```typescript
-export interface MatchChain<TSubject, TResult> {
-  on: (
-    pattern: TSubject | Predicate<TSubject>,
-    handler: Handler<TResult>
-  ) => MatchChain<TSubject, TResult>
+export interface MatchChain<TSubject, TResult = never> {
+  on: (pattern: Pattern<TSubject>, handler: Handler<TResult>) => MatchChain<TSubject, TResult>
+  onAny: (values: readonly TSubject[], handler: Handler<TResult>) => MatchChain<TSubject, TResult>
   otherwise: (handler: Handler<TResult>) => TResult
+  default: (handler: Handler<TResult>) => TResult
+  get: () => TResult
+  /** @deprecated use get() */
+  valueOf: () => TResult
+  run: () => boolean
+  readonly isMatched: boolean
 }
 ```
+
+Simplified for readability: the real declaration threads an extra inference type parameter through
+each method so handler return types accumulate. See
+[Inferred vs Pinned Result Types](/guide/type-safety#inferred-vs-pinned-result-types).
 
 **Type Parameters:**
 
 - `TSubject` - The type of values being matched
-- `TResult` - The return type of handler functions
-
-**Properties:**
-
-- `on()` - Add a single case
-- `otherwise()` - Set default and execute
+- `TResult` - The accumulated return type of handler functions. Leave it at its `never` default to
+  have handler return types inferred; pass it explicitly to pin the chain.
 
 **Example:**
 
 ```typescript
-import { match, MatchChain } from '@anilkumarthakur/match'
+import { match, type MatchChain } from '@anilkumarthakur/match'
 
-const chain: MatchChain<string, number> = match<string, number>('test').on('test', () => 42)
+// Fresh chain — no handler has contributed a type yet, so TResult is still `never`
+const fresh: MatchChain<string> = match('test')
+
+// Inferred: name the type the handlers accumulated. `MatchChain<string>` would
+// no longer fit here, because the chain is now carrying `number`.
+const chain: MatchChain<string, number> = match('test').on('test', () => 42)
+
+// Pinned up front
+const pinned: MatchChain<string, number> = match<string, number>('test').on('test', () => 42)
 ```
 
 ## Classes
@@ -112,13 +150,17 @@ const chain: MatchChain<string, number> = match<string, number>('test').on('test
 The core matcher class.
 
 ```typescript
-class Matcher<TSubject, TResult> {
+class Matcher<TSubject, TResult> implements MatchChain<TSubject, TResult> {
   constructor(subject: TSubject)
-  on(value: TSubject, handler: Handler<TResult>): this
+  on(pattern: Pattern<TSubject>, handler: Handler<TResult>): this
   onAny(values: readonly TSubject[], handler: Handler<TResult>): this
   otherwise(handler: Handler<TResult>): TResult
   default(handler: Handler<TResult>): TResult
+  get(): TResult
+  /** @deprecated use get() */
   valueOf(): TResult
+  run(): boolean
+  get isMatched(): boolean
 }
 ```
 
@@ -133,13 +175,17 @@ class UnhandledMatchError extends Error {
   constructor(value: unknown)
   name: 'UnhandledMatchError'
   message: string
+  readonly value: unknown
 }
 ```
 
 **Properties:**
 
 - `name` - Always "UnhandledMatchError"
-- `message` - Contains the unmatched value
+- `message` - A best-effort description of the unmatched value. Deliberately lossy for values JSON
+  cannot represent (BigInt, symbols, functions, `NaN`, circular structures, `Map`/`Set`), so do not
+  parse it.
+- `value` - The raw unmatched subject. Branch on this rather than on the message.
 
 **Example:**
 
@@ -149,10 +195,10 @@ import { match, UnhandledMatchError } from '@anilkumarthakur/match'
 try {
   match('foo')
     .on('bar', () => 'not matched')
-    .valueOf()
+    .get()
 } catch (error) {
   if (error instanceof UnhandledMatchError) {
-    console.error('No match found:', error.message)
+    console.error('No match found for:', error.value) // "foo"
   }
 }
 ```
@@ -185,22 +231,19 @@ See [match() Function](/api/match) for details and examples.
 ## Import Examples
 
 ```typescript
-// Named imports
-import {
-  match,
-  Matcher,
-  UnhandledMatchError,
-  Handler,
-  MatchChain,
-  MatcherHandler
-} from '@anilkumarthakur/match'
+// Value imports
+import { match, Matcher, UnhandledMatchError } from '@anilkumarthakur/match'
 
 // Type-only imports (TypeScript)
-import type { Handler, MatchChain, MatcherHandler } from '@anilkumarthakur/match'
+import type { Handler, Pattern, Predicate, MatchChain } from '@anilkumarthakur/match'
 
 // Mixed imports
 import { match, type Handler } from '@anilkumarthakur/match'
 ```
+
+`Handler`, `Predicate`, `Pattern`, `MatchChain` and `MatcherHandler` are types, so they must be
+imported with `import type` (or an inline `type` modifier) under `verbatimModuleSyntax` and
+`isolatedModules`.
 
 ## Type Safety
 

@@ -128,7 +128,9 @@ const calculateShipping = (order: Order): number => {
     .otherwise(() => 10)
 }
 
-const orders = [
+// Annotate the array: without it TypeScript widens `customerLevel` to `string`,
+// which is not assignable to the 'gold' | 'silver' | 'bronze' union.
+const orders: Order[] = [
   { total: 150, itemCount: 3, customerLevel: 'gold', isInternational: false },
   { total: 50, itemCount: 3, customerLevel: 'silver', isInternational: false },
   { total: 200, itemCount: 15, customerLevel: 'bronze', isInternational: true }
@@ -253,7 +255,8 @@ console.log(summarizeArray(Array.from({ length: 1000 }, (_, i) => i))) // "Huge 
 
 ## Mixing Literals and Predicates
 
-Combine both for maximum flexibility:
+Combine both for maximum flexibility. The subject has to be the value your **literals** compare
+against — here `doc.type`, not `doc` — and the predicates then close over the rest of the object:
 
 ```typescript
 interface Document {
@@ -262,14 +265,14 @@ interface Document {
 }
 
 const documentStatus = (doc: Document): string => {
-  return match(doc)
+  return match(doc.type)
     .on(
-      (d) => d.type === 'pdf' && d.size > 10 * 1024 * 1024,
+      (t) => t === 'pdf' && doc.size > 10 * 1024 * 1024,
       () => 'Large PDF'
     )
     .on('pdf', () => 'Small PDF')
     .on(
-      (d) => d.size > 5 * 1024 * 1024,
+      () => doc.size > 5 * 1024 * 1024,
       () => 'Large file'
     )
     .on('doc', () => 'Document')
@@ -280,7 +283,15 @@ const documentStatus = (doc: Document): string => {
 console.log(documentStatus({ type: 'pdf', size: 15 * 1024 * 1024 })) // "Large PDF"
 console.log(documentStatus({ type: 'pdf', size: 2 * 1024 * 1024 })) // "Small PDF"
 console.log(documentStatus({ type: 'doc', size: 1024 })) // "Document"
+console.log(documentStatus({ type: 'xls', size: 8 * 1024 * 1024 })) // "Large file"
 ```
+
+::: warning Don't mix an object subject with literal patterns
+If the subject were `doc` (the whole object), `.on('pdf', ...)` would compare `Object.is(doc, 'pdf')`
+— always `false`. The predicates would still fire, so the chain looks like it works while every
+literal case is silently dead, and a small PDF would fall through to `'Unknown format'`. Literals
+are compared against the subject itself, never against one of its properties.
+:::
 
 ## String Pattern Matching
 

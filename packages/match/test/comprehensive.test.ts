@@ -1,8 +1,9 @@
+import { vi } from 'vitest'
 import { match, Matcher } from '../src/matcher'
 import { UnhandledMatchError } from '../src/errors'
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
 })
 
 describe('Match Expression - Comprehensive Test Suite', () => {
@@ -286,7 +287,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
       })
 
       test('subject null matches correctly with side effect', () => {
-        const fn = jest.fn(() => 'matched')
+        const fn = vi.fn(() => 'matched')
         const result = match(null)
           .on(null, fn)
           .otherwise(() => 'default')
@@ -498,7 +499,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('same handler used for multiple keys', () => {
-      const handler = jest.fn(() => 'handled')
+      const handler = vi.fn(() => 'handled')
       const result = match('bar')
         .on('foo', handler)
         .on('bar', handler)
@@ -541,22 +542,34 @@ describe('Match Expression - Comprehensive Test Suite', () => {
   describe('Predicate Matching', () => {
     test('predicate - matches when function returns true', () => {
       const result = match(10)
-        .on((v) => v > 5, () => 'GT5')
+        .on(
+          (v) => v > 5,
+          () => 'GT5'
+        )
         .otherwise(() => 'DEFAULT')
       expect(result).toBe('GT5')
     })
 
     test('predicate - skips when function returns false', () => {
       const result = match(3)
-        .on((v) => v > 5, () => 'GT5')
+        .on(
+          (v) => v > 5,
+          () => 'GT5'
+        )
         .otherwise(() => 'DEFAULT')
       expect(result).toBe('DEFAULT')
     })
 
     test('predicate - first matching predicate wins', () => {
       const result = match(10)
-        .on((v) => v > 5, () => 'GT5')
-        .on((v) => v > 8, () => 'GT8')
+        .on(
+          (v) => v > 5,
+          () => 'GT5'
+        )
+        .on(
+          (v) => v > 8,
+          () => 'GT8'
+        )
         .otherwise(() => 'DEFAULT')
       expect(result).toBe('GT5')
     })
@@ -564,10 +577,22 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     test('predicate - range matching', () => {
       const grade = (score: number) =>
         match(score)
-          .on((n) => n >= 90, () => 'A')
-          .on((n) => n >= 80, () => 'B')
-          .on((n) => n >= 70, () => 'C')
-          .on((n) => n >= 60, () => 'D')
+          .on(
+            (n) => n >= 90,
+            () => 'A'
+          )
+          .on(
+            (n) => n >= 80,
+            () => 'B'
+          )
+          .on(
+            (n) => n >= 70,
+            () => 'C'
+          )
+          .on(
+            (n) => n >= 60,
+            () => 'D'
+          )
           .otherwise(() => 'F')
 
       expect(grade(95)).toBe('A')
@@ -580,9 +605,18 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     test('predicate - type checking', () => {
       const checkType = (val: unknown) =>
         match(val)
-          .on((v: unknown) => typeof v === 'string', () => 'string')
-          .on((v: unknown) => typeof v === 'number', () => 'number')
-          .on((v: unknown) => Array.isArray(v), () => 'array')
+          .on(
+            (v: unknown) => typeof v === 'string',
+            () => 'string'
+          )
+          .on(
+            (v: unknown) => typeof v === 'number',
+            () => 'number'
+          )
+          .on(
+            (v: unknown) => Array.isArray(v),
+            () => 'array'
+          )
           .otherwise(() => 'other')
 
       expect(checkType('hello')).toBe('string')
@@ -594,14 +628,20 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     test('predicate - mixed with literal matching', () => {
       const result = match(5)
         .on(5, () => 'exact')
-        .on((v) => v > 0, () => 'positive')
+        .on(
+          (v) => v > 0,
+          () => 'positive'
+        )
         .otherwise(() => 'default')
       expect(result).toBe('exact')
     })
 
     test('predicate - literal after predicate', () => {
       const result = match(10)
-        .on((v) => v < 0, () => 'negative')
+        .on(
+          (v) => v < 0,
+          () => 'negative'
+        )
         .on(10, () => 'ten')
         .otherwise(() => 'default')
       expect(result).toBe('ten')
@@ -610,8 +650,14 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     test('predicate - with side effects', () => {
       let sideEffect = ''
       match('admin')
-        .on((v) => v === 'admin', () => (sideEffect = 'is admin'))
-        .on((v) => v === 'user', () => (sideEffect = 'is user'))
+        .on(
+          (v) => v === 'admin',
+          () => (sideEffect = 'is admin')
+        )
+        .on(
+          (v) => v === 'user',
+          () => (sideEffect = 'is user')
+        )
 
       expect(sideEffect).toBe('is admin')
     })
@@ -624,8 +670,14 @@ describe('Match Expression - Comprehensive Test Suite', () => {
       const user: User = { role: 'admin', active: true }
 
       const result = match(user)
-        .on((u) => u.role === 'admin' && u.active, () => 'active admin')
-        .on((u) => u.role === 'admin', () => 'inactive admin')
+        .on(
+          (u) => u.role === 'admin' && u.active,
+          () => 'active admin'
+        )
+        .on(
+          (u) => u.role === 'admin',
+          () => 'inactive admin'
+        )
         .otherwise(() => 'not admin')
 
       expect(result).toBe('active admin')
@@ -702,7 +754,10 @@ describe('Match Expression - Comprehensive Test Suite', () => {
 
     test('run - with predicate matching', () => {
       const didMatch = match(10)
-        .on((v) => v > 5, () => 'big')
+        .on(
+          (v) => v > 5,
+          () => 'big'
+        )
         .run()
       expect(didMatch).toBe(true)
     })
@@ -779,7 +834,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('onAny - handler with side effects', () => {
-      const fn = jest.fn(() => 'matched')
+      const fn = vi.fn(() => 'matched')
       const result = match('b')
         .onAny(['a', 'b', 'c'], fn)
         .otherwise(() => 'default')
@@ -788,8 +843,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('onAny - returns this for chaining', () => {
-      const matcher = match('a')
-        .onAny(['a', 'b'], () => 'test')
+      const matcher = match('a').onAny(['a', 'b'], () => 'test')
       expect(typeof matcher.on).toBe('function')
       expect(typeof matcher.otherwise).toBe('function')
     })
@@ -800,7 +854,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
   // ============================================================================
   describe('otherwise() Method', () => {
     test('default handler called', () => {
-      const defFn = jest.fn(() => 'default')
+      const defFn = vi.fn(() => 'default')
       const result = match('nope')
         .on('something', () => 'something')
         .otherwise(defFn)
@@ -815,7 +869,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('check that console logs or side effects can happen inside handlers', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
       const result = match('warning')
         .on('success', () => {
@@ -887,11 +941,9 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('default - is equivalent to otherwise', () => {
-      const matcher1 = match('test')
-        .on('other', () => 'other')
+      const matcher1 = match('test').on('other', () => 'other')
 
-      const matcher2 = match('test')
-        .on('other', () => 'other')
+      const matcher2 = match('test').on('other', () => 'other')
 
       const defaultResult = matcher1.default(() => 'default')
       const otherwiseResult = matcher2.otherwise(() => 'default')
@@ -900,7 +952,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('default - executes handler with side effects', () => {
-      const fn = jest.fn(() => 'result')
+      const fn = vi.fn(() => 'result')
       const result = match('no-match')
         .on('something', () => 'something')
         .default(fn)
@@ -942,6 +994,9 @@ describe('Match Expression - Comprehensive Test Suite', () => {
   // ============================================================================
   // VALUEOF METHOD TESTS
   // ============================================================================
+  // `valueOf` is deprecated in favour of `get()` (it doubles as JS's ToPrimitive
+  // hook), but it remains supported, so this block keeps exercising it.
+  /* eslint-disable @typescript-eslint/no-deprecated */
   describe('valueOf() Method', () => {
     test('valueOf - returns matched handler result', () => {
       const result = match('foo')
@@ -1027,6 +1082,10 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('valueOf - with undefined result', () => {
+      // TypeScript infers `void`, not `undefined`, for `() => undefined` when the
+      // handler's return type is inferred, so the chain's static type trips the
+      // void-expression rule. The runtime value is a plain `undefined`.
+      // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
       const result = match('undef')
         .on('undef', () => undefined)
         .valueOf()
@@ -1034,8 +1093,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('valueOf - called multiple times returns same result', () => {
-      const matcher = match('a')
-        .on('a', () => 'result')
+      const matcher = match('a').on('a', () => 'result')
       expect(matcher.valueOf()).toBe('result')
       expect(matcher.valueOf()).toBe('result')
     })
@@ -1081,9 +1139,9 @@ describe('Match Expression - Comprehensive Test Suite', () => {
   // ============================================================================
   describe('Handler Behavior and Side Effects', () => {
     test('only calls matching handler', () => {
-      const fn1 = jest.fn(() => 'foo')
-      const fn2 = jest.fn(() => 'bar')
-      const fnDefault = jest.fn(() => 'default')
+      const fn1 = vi.fn(() => 'foo')
+      const fn2 = vi.fn(() => 'bar')
+      const fnDefault = vi.fn(() => 'default')
       const result = match('bar').on('foo', fn1).on('bar', fn2).otherwise(fnDefault)
       expect(result).toBe('bar')
       expect(fn1).not.toHaveBeenCalled()
@@ -1542,7 +1600,9 @@ describe('Match Expression - Comprehensive Test Suite', () => {
   // ============================================================================
   describe('Performance and Edge Cases', () => {
     test('handles large number of match arms', () => {
-      let matcher = match('z')
+      // Annotated because reassigning the chain variable needs a fixed result
+      // type; a bare `match('z')` infers `never` and then widens per `.on()`.
+      let matcher = match<string, string>('z')
       for (let i = 0; i < 100; i++) {
         matcher = matcher.on(`key${i}`, () => `matched ${i}`)
       }
@@ -1569,7 +1629,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('Performance test with many handlers', () => {
-      let matcher = match('target')
+      let matcher = match<string, string>('target')
       for (let i = 0; i < 50; i++) {
         matcher = matcher.on(`case-${i}`, () => `result-${i}`)
       }
@@ -1579,7 +1639,7 @@ describe('Match Expression - Comprehensive Test Suite', () => {
     })
 
     test('Simulated PHP comma-separated conditions', () => {
-      const handler = jest.fn(() => 'one or two')
+      const handler = vi.fn(() => 'one or two')
       const result = match(2)
         .on(1, handler)
         .on(2, handler)

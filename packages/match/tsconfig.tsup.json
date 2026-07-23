@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // NOTE: no `ignoreDeprecations` here. TypeScript 6+ reports the `baseUrl`
+    // that tsup injects for `paths` as TS5101 and needs "6.0" to silence it,
+    // but that value is rejected outright by TypeScript 5.x (TS5103). Add it
+    // only if this package moves to TypeScript 6.
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test"]
+}

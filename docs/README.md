@@ -25,6 +25,7 @@ docs/
     ├── index.md
     ├── string-matching.md
     ├── http-status-codes.md
+    ├── predicate-matching.md
     ├── nested-matching.md
     ├── conditional-logic.md
     └── real-world.md
@@ -32,10 +33,12 @@ docs/
 
 ## Development
 
+This is a pnpm workspace; run these from the repository root.
+
 ### Run Documentation Locally
 
 ```bash
-npm run docs:dev
+pnpm run docs:dev
 ```
 
 This will start a local development server at `http://localhost:5173` (or similar).
@@ -43,7 +46,7 @@ This will start a local development server at `http://localhost:5173` (or simila
 ### Build Documentation for Production
 
 ```bash
-npm run docs:build
+pnpm run docs:build
 ```
 
 This generates static files in `docs/.vitepress/dist/`.
@@ -51,7 +54,7 @@ This generates static files in `docs/.vitepress/dist/`.
 ### Preview Production Build
 
 ```bash
-npm run docs:preview
+pnpm run docs:preview
 ```
 
 This starts a local server to preview the production build.

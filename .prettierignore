@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+dist
+**/dist
+coverage
+**/coverage
+*.tsbuildinfo
+pnpm-lock.yaml
+CHANGELOG.md
+**/CHANGELOG.md
+.changeset/*.md
+docs/.vitepress/cache
+docs/.vitepress/dist

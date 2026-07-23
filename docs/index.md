@@ -28,13 +28,13 @@ features:
     details: Clean, expressive syntax inspired by PHP match expressions
   - icon: 🚀
     title: Fast
-    details: Efficient equality-based matching using JavaScript's Map (O(1) lookup)
+    details: Eager, allocation-free matching — one Object.is per case, no lookup table to build
   - icon: 📦
     title: Lightweight
-    details: Zero dependencies, ~1.2KB gzipped
+    details: Zero dependencies, ~1 KB gzipped
   - icon: 🧪
     title: Well-Tested
-    details: 245 comprehensive tests with 100% code coverage
+    details: Comprehensive test suite at 100% code coverage
   - icon: 🔗
     title: Chainable
     details: Fluent API for method chaining and composition
