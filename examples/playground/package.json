@@ -1,7 +1,7 @@
 {
   "name": "example-playground",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "description": "Node + TypeScript demo of @anilkumarthakur/match, resolved through the built package (validates the real exports map and type declarations).",
   "scripts": {
