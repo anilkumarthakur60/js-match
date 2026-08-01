@@ -1,4 +1,12 @@
-import type { IsPinned, MatchChain, Pattern, Predicate, ResultHandler } from './types'
+import type {
+  IsPinned,
+  MatchChain,
+  NonExhaustive,
+  Pattern,
+  Predicate,
+  ResultHandler,
+  Unmatched
+} from './types'
 import { UnhandledMatchError } from './errors'
 
 /**
@@ -17,8 +25,12 @@ export class Matcher<
   // Derived, never passed explicitly: it remembers whether the chain started
   // pinned (`match<S, R>(x)`) or inferring (`match(x)`), which TResult alone can
   // no longer tell you once a handler has contributed a type to it.
-  TPinned extends boolean = IsPinned<TResult>
-> implements MatchChain<TSubject, TResult, TPinned> {
+  TPinned extends boolean = IsPinned<TResult>,
+  // Phantom, never passed explicitly: the subject values no arm has covered
+  // yet. It exists purely so `exhaustive()` can refuse to compile while cases
+  // are outstanding; nothing at runtime reads it.
+  TRemaining = TSubject
+> implements MatchChain<TSubject, TResult, TPinned, TRemaining> {
   private readonly subject: TSubject
   private matched = false
   // Stored as `unknown` because each handler contributes its own return type to
@@ -47,13 +59,15 @@ export class Matcher<
    * ```
    */
   // Deliberately not `this`: the return type folds this handler's R into
-  // TResult so the chain accumulates its handlers' return types. It is still the
-  // same instance, which is why prefer-return-this-type is suppressed here.
-  on<R = never>(
-    pattern: Pattern<TSubject>,
+  // TResult so the chain accumulates its handlers' return types, and drops this
+  // pattern from TRemaining so `exhaustive()` can tell when the arms are
+  // complete. Both are phantom — the object returned is this very instance,
+  // which is why prefer-return-this-type is suppressed here.
+  on<const TPattern extends Pattern<TSubject>, R = never>(
+    pattern: TPattern,
     handler: ResultHandler<TResult, R, TPinned>
     // eslint-disable-next-line @typescript-eslint/prefer-return-this-type
-  ): Matcher<TSubject, TResult | R, TPinned> {
+  ): Matcher<TSubject, TResult | R, TPinned, Unmatched<TSubject, TRemaining, TPattern>> {
     if (this.matched) return this
 
     // Treat pattern as predicate only if:
@@ -78,12 +92,13 @@ export class Matcher<
    * @param values - Array of literal values to match against
    * @param handler - Function to execute if any value matches
    */
-  // See `on`: the widened return type is what accumulates the result union.
-  onAny<R = never>(
-    values: readonly TSubject[],
+  // See `on`: the widened return type is what accumulates the result union, and
+  // every listed value is a literal, so all of them leave TRemaining.
+  onAny<const TValues extends readonly TSubject[], R = never>(
+    values: TValues,
     handler: ResultHandler<TResult, R, TPinned>
     // eslint-disable-next-line @typescript-eslint/prefer-return-this-type
-  ): Matcher<TSubject, TResult | R, TPinned> {
+  ): Matcher<TSubject, TResult | R, TPinned, Exclude<TRemaining, TValues[number]>> {
     if (this.matched) return this
 
     if (values.some((v) => Object.is(this.subject, v))) {
@@ -111,6 +126,49 @@ export class Matcher<
    */
   default<R = never>(handler: ResultHandler<TResult, R, TPinned>): TResult | R {
     return this.otherwise<R>(handler)
+  }
+
+  /**
+   * Resolve the chain, requiring at compile time that every case is covered.
+   *
+   * This is the checked counterpart to `get()`. Both throw on an unmatched
+   * subject at runtime; the difference is that reaching `exhaustive()` at all
+   * means the compiler has already confirmed no declared subject value is left
+   * without an arm. Add a case to the union later and every `exhaustive()` chain
+   * over it stops compiling — the failure moves from production to the build.
+   *
+   * The guarantee is only as good as the subject's declared type, which is why
+   * it still throws: a value smuggled past the type system (an unvalidated API
+   * payload, a cast) can reach a chain the compiler believes is total.
+   *
+   * Only literal arms count towards coverage. A chain that discriminates with
+   * predicates keeps its full remainder and cannot call this — use
+   * `otherwise()` there, since a guard's outcome is not knowable statically.
+   *
+   * @param _args Nothing, once no cases remain. While cases are still missing the
+   *   signature demands one argument of an unconstructable type, so the call
+   *   fails to compile; hover it to see which values are unhandled.
+   * @throws {UnhandledMatchError} If no arm matched at runtime
+   * @returns The result from the matched handler
+   *
+   * @example
+   * ```typescript
+   * type Status = 'active' | 'archived'
+   *
+   * const label = (status: Status): string =>
+   *   match<Status, string>(status)
+   *     .on('active', () => 'Live')
+   *     .on('archived', () => 'Archived')
+   *     .exhaustive()
+   * ```
+   */
+  exhaustive(
+    // Unused at runtime: the parameter exists only to make the call fail to
+    // typecheck while TRemaining is inhabited. Prefixed so `noUnusedParameters`
+    // and the lint rule both accept it.
+    ..._args: [TRemaining] extends [never] ? [] : [error: NonExhaustive<TRemaining>]
+  ): TResult {
+    return this.get()
   }
 
   /**

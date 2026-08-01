@@ -39,6 +39,19 @@ export type Predicate<T> = (value: T) => boolean
 export type MatcherHandler<T> = Handler<T>
 
 /**
+ * The shape every function value is assignable to.
+ *
+ * Used to ask "is this type a function?" without naming a signature. The
+ * `never[]` parameter list keeps it maximally permissive: parameters are
+ * checked contravariantly, so a function type satisfies this regardless of what
+ * it actually accepts.
+ *
+ * Deliberately not exported — it is an implementation detail of `Pattern` and
+ * `Unmatched`, not part of the API consumers write against.
+ */
+type AnyFunction = (...args: never[]) => unknown
+
+/**
  * The set of patterns `.on()` accepts for a given subject type.
  *
  * This mirrors the runtime rule in `Matcher#on`: a function pattern is only
@@ -60,7 +73,7 @@ export type MatcherHandler<T> = Handler<T>
  * type P2 = Pattern<() => string> // () => string  (no predicate arm)
  * ```
  */
-export type Pattern<TSubject> = [TSubject] extends [(...args: never[]) => unknown]
+export type Pattern<TSubject> = [TSubject] extends [AnyFunction]
   ? TSubject
   : TSubject | Predicate<TSubject>
 
@@ -100,6 +113,68 @@ export type ResultHandler<
 > = TPinned extends true ? Handler<TResult> : Handler<R>
 
 /**
+ * The subject values still unaccounted for after one `.on(pattern)` arm.
+ *
+ * Only a *literal* pattern proves anything about coverage: an arm matching
+ * `'a'` removes `'a'` from what remains. A predicate cannot be evaluated by the
+ * type system, so a predicate arm leaves the remainder untouched — which is why
+ * `.exhaustive()` never accepts a chain that leans on guards. Reporting "still
+ * incomplete" there is the honest answer, not a limitation to work around.
+ *
+ * The function-subject case is tested first to mirror `Pattern`: when the
+ * subject is itself a function the pattern is an identity comparison rather
+ * than a predicate, so it does narrow.
+ *
+ * Note that `Exclude` only removes members of a union. A subject typed as the
+ * whole of `string` therefore never narrows to `never`, so `.exhaustive()`
+ * stays unavailable for it — correctly, since no finite set of arms can cover
+ * every string.
+ *
+ * @template TSubject The type of the value being matched against
+ * @template TRemaining The values not yet covered by earlier arms
+ * @template TPattern The pattern this arm was given
+ *
+ * @example
+ * ```typescript
+ * type A = Unmatched<'a' | 'b', 'a' | 'b', 'a'>              // 'b'
+ * type B = Unmatched<'a' | 'b', 'a' | 'b', Predicate<'a'>>   // 'a' | 'b'
+ * ```
+ */
+export type Unmatched<TSubject, TRemaining, TPattern> = [TSubject] extends [AnyFunction]
+  ? Exclude<TRemaining, TPattern>
+  : [TPattern] extends [AnyFunction]
+    ? TRemaining
+    : Exclude<TRemaining, TPattern>
+
+/**
+ * The argument `.exhaustive()` demands when cases are still missing.
+ *
+ * No value of this type can be produced — `nonExhaustive` is typed `never` — so
+ * the call cannot be satisfied. That is the entire point: the diagnostic is the
+ * feature, not the value. TypeScript reports the missing argument and names
+ * this type, whose `missingCases` parameter spells out on hover exactly which
+ * subject values are still unhandled.
+ *
+ * @template TRemaining The subject values still lacking an arm
+ *
+ * @example
+ * ```typescript
+ * declare const status: 'active' | 'archived'
+ * match<'active' | 'archived', string>(status)
+ *   .on('active', () => 'live')
+ *   // Error: expected 1 argument. The parameter is
+ *   // NonExhaustive<'archived'>, naming the case that is missing.
+ *   .exhaustive()
+ * ```
+ */
+export interface NonExhaustive<TRemaining> {
+  /** Documentation-only: hovering the type reports the uncovered cases. */
+  readonly missingCases: TRemaining
+  /** `never` is what makes the whole object impossible to construct. */
+  readonly nonExhaustive: never
+}
+
+/**
  * Interface representing a chainable match expression
  *
  * Provides the API contract for method chaining in match expressions. It
@@ -112,6 +187,9 @@ export type ResultHandler<
  *   at its `never` default to have handler return types inferred.
  * @template TPinned Internal: whether TResult was pinned by the consumer rather
  *   than inferred. It is derived from TResult and should not be passed by hand.
+ * @template TRemaining Internal: the subject values no arm has covered yet. It
+ *   starts as TSubject and shrinks as literal patterns are added; reaching
+ *   `never` is what unlocks `.exhaustive()`.
  *
  * @example
  * ```typescript
@@ -125,7 +203,8 @@ export type ResultHandler<
 export interface MatchChain<
   TSubject,
   TResult = never,
-  TPinned extends boolean = IsPinned<TResult>
+  TPinned extends boolean = IsPinned<TResult>,
+  TRemaining = TSubject
 > {
   /**
    * Alias for otherwise() - PHP compatibility
@@ -134,6 +213,18 @@ export interface MatchChain<
    * @returns The result from matched handler or default
    */
   default: <R = never>(handler: ResultHandler<TResult, R, TPinned>) => TResult | R
+
+  /**
+   * Resolve the chain, requiring at compile time that every case is covered
+   *
+   * @param args Nothing, once no cases remain. While cases are still missing the
+   *   signature demands one unconstructable argument, so the call fails to
+   *   compile and names them.
+   * @returns The result from the matched handler
+   */
+  exhaustive: (
+    ...args: [TRemaining] extends [never] ? [] : [error: NonExhaustive<TRemaining>]
+  ) => TResult
 
   /**
    * Get the matched result without a fallback
@@ -153,11 +244,12 @@ export interface MatchChain<
    * @param pattern A literal value to match with Object.is, or a predicate
    * @param handler Function to execute if matched
    * @returns The matcher for chaining, with this handler's return type folded in
+   *   and this pattern removed from what `.exhaustive()` still requires
    */
-  on: <R = never>(
-    pattern: Pattern<TSubject>,
+  on: <const TPattern extends Pattern<TSubject>, R = never>(
+    pattern: TPattern,
     handler: ResultHandler<TResult, R, TPinned>
-  ) => MatchChain<TSubject, TResult | R, TPinned>
+  ) => MatchChain<TSubject, TResult | R, TPinned, Unmatched<TSubject, TRemaining, TPattern>>
 
   /**
    * Match against any of the provided literal values
@@ -165,11 +257,12 @@ export interface MatchChain<
    * @param values Array of literal values to match against
    * @param handler Function to execute if any value matches
    * @returns The matcher for chaining, with this handler's return type folded in
+   *   and every listed value removed from what `.exhaustive()` still requires
    */
-  onAny: <R = never>(
-    values: readonly TSubject[],
+  onAny: <const TValues extends readonly TSubject[], R = never>(
+    values: TValues,
     handler: ResultHandler<TResult, R, TPinned>
-  ) => MatchChain<TSubject, TResult | R, TPinned>
+  ) => MatchChain<TSubject, TResult | R, TPinned, Exclude<TRemaining, TValues[number]>>
 
   /**
    * Set default handler and execute the match

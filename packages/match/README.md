@@ -15,6 +15,8 @@ PHP-style match expressions for JavaScript/TypeScript with 100% type safety and 
 🎯 **Readable**: Clean, expressive syntax inspired by PHP match expressions  
 🚀 **Fast**: Eager, allocation-free matching — a single `Object.is` per case, no lookup table to build  
 🛡️ **Guards**: Predicate functions, not just literals — the headline extension over PHP's `match`  
+✅ **Exhaustive**: `.exhaustive()` makes an uncovered union member a _compile_ error, not a runtime one  
+🧩 **Composable**: `not`/`allOf`/`anyOf` combine guards without hand-written wrapper lambdas  
 📦 **Lightweight**: Zero dependencies, ~1 KB gzipped (ES module)  
 🧪 **Well-Tested**: Comprehensive test suite at 100% code coverage  
 🔗 **Chainable**: Fluent API for method chaining  
@@ -176,6 +178,66 @@ const result = match('test')
   .get() // Must have matched something
 ```
 
+### `exhaustive(): TResult`
+
+The checked counterpart to [`get()`](#get-tresult). Resolves the chain, but only compiles once
+every member of the subject's union has an arm. Reach for it when forgetting a case should break
+the build rather than surface in production.
+
+**Returns:** The result from the matched handler
+
+**Throws:** `UnhandledMatchError` if no case matched at runtime
+
+**Example:**
+
+```typescript
+type Status = 'active' | 'archived' | 'draft'
+
+const label = (status: Status): string =>
+  match<Status, string>(status)
+    .on('active', () => 'Live')
+    .on('archived', () => 'Archived')
+    .on('draft', () => 'Draft')
+    .exhaustive() // ✅ compiles: nothing left over
+```
+
+Drop an arm and the call stops compiling. The diagnostic names the gap:
+
+```typescript
+const label = (status: Status): string =>
+  match<Status, string>(status)
+    .on('active', () => 'Live')
+    .on('archived', () => 'Archived')
+    .exhaustive()
+//   ~~~~~~~~~~
+// Expected 1 arguments, but got 0.
+//   The parameter is NonExhaustive<"draft">, naming the case with no arm.
+```
+
+The real payoff is later: add `'pending'` to `Status` six months from now and **every**
+`.exhaustive()` chain over it fails to compile until it is handled. A `switch` with a `default`, or
+an `.otherwise()`, would silently take the fallback branch instead.
+
+Three things worth knowing:
+
+- **Only literal arms count.** A predicate's outcome is not knowable statically, so a guard leaves
+  the remainder untouched and `.exhaustive()` stays unavailable. That is deliberate — the
+  alternative is a guarantee the library cannot honour. Use `otherwise()` on guard-driven chains.
+- **Open-ended subjects are never exhaustible.** A subject typed as all of `string` or `number` has
+  infinitely many remaining values, so no finite set of arms unlocks the call. Narrow the subject to
+  a union first.
+- **It still throws at runtime.** The guarantee is only as strong as the subject's declared type; an
+  unvalidated API payload cast to `Status` can reach a chain the compiler believes is total. Better a
+  loud `UnhandledMatchError` than a silent `undefined`.
+
+```typescript
+// `onAny` covers every value it lists, so this is exhaustive too.
+match<Status, string>(status)
+  .onAny(['active', 'draft'], () => 'Editable')
+  .on('archived', () => 'Frozen')
+  .exhaustive()
+```
+
 ### `valueOf(): TResult`
 
 Deprecated alias for [`get()`](#get-tresult). Prefer `get()`.
@@ -221,6 +283,43 @@ you can inspect a matcher and keep adding cases.
 const matcher = match('test').on('test', () => 'matched')
 console.log(matcher.isMatched) // true
 ```
+
+### Guard combinators: `not`, `allOf`, `anyOf`
+
+`.on()` takes one predicate per arm, so composing conditions otherwise means writing a wrapper
+lambda for each combination. These three give the useful shapes a name:
+
+```typescript
+import { allOf, anyOf, match, not } from '@anilkumarthakur/match'
+
+const isVerified = (u: User) => u.verified
+const isSuspended = (u: User) => u.suspended
+const isAdmin = (u: User) => u.role === 'admin'
+const isOwner = (u: User) => u.role === 'owner'
+
+match(user)
+  .on(allOf(isVerified, not(isSuspended)), () => 'ok')
+  .on(anyOf(isAdmin, isOwner), () => 'privileged')
+  .otherwise(() => 'blocked')
+```
+
+Each returns a plain `Predicate<T>`, so they nest freely and work anywhere a predicate is accepted.
+Evaluation short-circuits left to right, exactly like `&&` and `||` — put the cheap checks first.
+
+| Helper                 | Matches when                   | With no arguments      |
+| ---------------------- | ------------------------------ | ---------------------- |
+| `not(p)`               | `p` does not match             | n/a                    |
+| `allOf(...predicates)` | every predicate matches        | matches **everything** |
+| `anyOf(...predicates)` | at least one predicate matches | matches **nothing**    |
+
+The empty cases follow `Array.prototype.every`/`some`, which makes it safe to spread a
+possibly-empty list of conditions into either one.
+
+> `anyOf` composes _conditions_; [`onAny`](#onanyvalues-readonly-tsubject-handler---tresult-matcher)
+> compares the subject against a list of _values_. Different jobs, similar names.
+
+Because combinators are predicates, they do not contribute to
+[`exhaustive()`](#exhaustive-tresult) coverage.
 
 ### `UnhandledMatchError`
 
@@ -457,6 +556,11 @@ const result = match(status)
   .otherwise(() => 'Unknown')
 ```
 
+Two places this goes beyond PHP: predicate arms (PHP compares with `===` only), and
+[`exhaustive()`](#exhaustive-tresult), which turns a missing case into a compile error. PHP can only
+raise `UnhandledMatchError` at runtime — the same fallback this library keeps for values that dodge
+the type system.
+
 ## Supported Types
 
 The library supports matching on any JavaScript type. Literal comparison uses `Object.is()`, **not**
@@ -538,7 +642,27 @@ const result3 = match<Status, string>('success')
   .on('pending', () => 'In progress')
   .on('error', () => 'Failed')
   .otherwise(() => 'Unknown')
+
+// Checked exhaustiveness — no fallback, and a missing arm is a compile error
+const result4 = match<Status, string>('success')
+  .on('success', () => 'Done')
+  .on('pending', () => 'In progress')
+  .on('error', () => 'Failed')
+  .exhaustive()
 ```
+
+See [`exhaustive()`](#exhaustive-tresult) for what does and does not count towards coverage.
+
+One TypeScript behaviour to be aware of when the result type is inferred: control-flow analysis
+narrows an annotated `const` to the literal it was assigned, so the subject type follows suit.
+
+```typescript
+const status: Status = 'success'
+match(status).on('pending', () => 1) // ✗ TSubject inferred as 'success', not Status
+```
+
+Pass the subject as a function parameter, or pin it with `match<Status, string>(status)`, and the
+full union is preserved.
 
 ## Performance
 
@@ -548,6 +672,24 @@ const result3 = match<Status, string>('success')
   `match` expression realistically has, a few identity comparisons beat building a hash map.
 - 💾 Only the first matching handler executes; later `.on()` calls short-circuit to no-ops
 - 📦 Roughly 3 kB raw / 1 kB gzipped per format (ESM, CJS, IIFE)
+- 🧮 Each chain allocates one `Matcher` and one closure per arm. A `switch` compiles to a jump table
+  and will win a microbenchmark; at the volumes real dispatch code runs at, the difference is noise
+  against the readability. If a chain genuinely is hot, `switch` is the right tool.
+
+## Not in scope
+
+Deliberate omissions, so the boundaries are clear:
+
+- **Structural / deep pattern matching.** There is no matching on object _shape_ — no
+  `{ type: 'circle', radius: _ }` patterns, no destructuring, no wildcards. Patterns are compared
+  with `Object.is()`, which means objects and arrays match by reference only. This mirrors PHP's
+  `match`, which is likewise a strict-equality construct. If you need shape-based matching with
+  bindings, a dedicated library such as [ts-pattern](https://github.com/gvergnaud/ts-pattern) solves
+  a genuinely different problem — reach for a predicate here, or that there.
+- **Exhaustiveness over predicates or open-ended types.** Covered under
+  [`exhaustive()`](#exhaustive-tresult): only literal arms can be proven to cover anything.
+- **Async handlers as a special case.** Handlers may return promises like any other value, but the
+  chain does not await them; `match(...)...get()` resolves to a `Promise` you await yourself.
 
 ## Testing
 
@@ -568,8 +710,10 @@ Test categories:
 
 - Basic functionality
 - Type matching (strings, numbers, booleans, objects, arrays, etc.)
-- All API methods (`on`, `onAny`, `otherwise`, `default`, `get`/`valueOf`, `run`, `isMatched`)
-- Predicate matching and function subjects
+- All API methods (`on`, `onAny`, `otherwise`, `default`, `get`/`valueOf`, `exhaustive`, `run`,
+  `isMatched`)
+- Predicate matching, guard combinators (`not`/`allOf`/`anyOf`) and function subjects
+- Compile-time exhaustiveness, asserted with `@ts-expect-error` so a regression fails `tsc`
 - Error handling
 - Type safety
 - Real-world examples

@@ -103,6 +103,88 @@ console.log(processScore(90)) // "High"
 console.log(processScore(60)) // "Medium"
 ```
 
+## Composing Guards
+
+`.on()` takes a single predicate per arm, so combining conditions otherwise means writing a wrapper
+lambda for every combination. `not`, `allOf` and `anyOf` give the three useful shapes a name:
+
+```typescript
+import { allOf, anyOf, match, not } from '@anilkumarthakur/match'
+
+interface User {
+  role: 'admin' | 'owner' | 'member'
+  suspended: boolean
+  verified: boolean
+}
+
+const isVerified = (u: User) => u.verified
+const isSuspended = (u: User) => u.suspended
+const isAdmin = (u: User) => u.role === 'admin'
+const isOwner = (u: User) => u.role === 'owner'
+
+const access = (user: User): string =>
+  match(user)
+    .on(allOf(isVerified, not(isSuspended)), () => 'full')
+    .on(anyOf(isAdmin, isOwner), () => 'privileged')
+    .otherwise(() => 'blocked')
+```
+
+Compare that with the hand-rolled equivalent, which buries the intent in punctuation:
+
+```typescript
+match(user)
+  .on(
+    (u) => u.verified && !u.suspended,
+    () => 'full'
+  )
+  .on(
+    (u) => u.role === 'admin' || u.role === 'owner',
+    () => 'privileged'
+  )
+  .otherwise(() => 'blocked')
+```
+
+Each combinator returns a plain `Predicate<T>`, so they nest freely:
+
+```typescript
+const isSmall = (n: number) => n < 10
+const isPositive = (n: number) => n > 0
+const isEven = (n: number) => n % 2 === 0
+
+const guard = allOf(isPositive, anyOf(isEven, isSmall), not(isSmall))
+
+guard(20) // true  — positive, even, not small
+guard(21) // false — odd and not small, so anyOf fails
+guard(4) // false — small, so not(isSmall) fails
+```
+
+Evaluation short-circuits left to right, exactly like `&&` and `||`, so put the cheap checks first.
+
+| Helper                 | Matches when                   | With no arguments      |
+| ---------------------- | ------------------------------ | ---------------------- |
+| `not(p)`               | `p` does not match             | n/a                    |
+| `allOf(...predicates)` | every predicate matches        | matches **everything** |
+| `anyOf(...predicates)` | at least one predicate matches | matches **nothing**    |
+
+The empty cases follow `Array.prototype.every` and `some`, which makes it safe to spread a
+possibly-empty list of conditions into either:
+
+```typescript
+const rules: Predicate<User>[] = getEnabledRules() // may be empty
+match(user)
+  .on(allOf(...rules), () => 'passes every enabled rule')
+  .otherwise(() => 'rejected')
+```
+
+::: tip
+`anyOf` composes _conditions_;
+[`onAny()`](/api/#onany-values-readonly-tsubject-handler-tresult-this) compares the subject against a
+list of _values_. Similar names, different jobs.
+:::
+
+Because a combinator is still a predicate, it does not contribute to
+[`exhaustive()`](/guide/type-safety#checked-exhaustiveness) coverage.
+
 ## Object Shape Checking
 
 Use predicates for structural validation:
