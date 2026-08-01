@@ -87,6 +87,57 @@ The check is wrapped in a tuple so it does not distribute over unions: for `stri
 the runtime decision depends on the value rather than the declared type, so both arms have to stay
 available. See [Function Subjects](/api/matcher#function-subjects).
 
+### `Unmatched<TSubject, TRemaining, TPattern>`
+
+The subject values still unaccounted for after one `.on(pattern)` arm. This is the machinery behind
+[`exhaustive()`](/api/#exhaustive-tresult).
+
+```typescript
+export type Unmatched<TSubject, TRemaining, TPattern> = [TSubject] extends [AnyFunction]
+  ? Exclude<TRemaining, TPattern>
+  : [TPattern] extends [AnyFunction]
+    ? TRemaining
+    : Exclude<TRemaining, TPattern>
+```
+
+Only a **literal** pattern proves anything about coverage: an arm matching `'a'` removes `'a'` from
+what remains. A predicate cannot be evaluated by the type system, so a predicate arm leaves the
+remainder untouched — which is why `.exhaustive()` never accepts a guard-driven chain. Reporting
+"still incomplete" there is the honest answer, not a limitation to work around.
+
+The function-subject case is tested first to mirror [`Pattern`](#pattern-tsubject): when the subject
+is itself a function the pattern is an identity comparison rather than a predicate, so it does
+narrow.
+
+```typescript
+type A = Unmatched<'a' | 'b', 'a' | 'b', 'a'> // 'b'
+type B = Unmatched<'a' | 'b', 'a' | 'b', Predicate<'a' | 'b'>> // 'a' | 'b'
+```
+
+**Note:** `Exclude` only removes members of a union, so a subject typed as the whole of `string`
+never narrows to `never` — correctly, since no finite set of arms covers every string.
+
+### `NonExhaustive<TRemaining>`
+
+The argument `.exhaustive()` demands while cases are still missing.
+
+```typescript
+export interface NonExhaustive<TRemaining> {
+  readonly missingCases: TRemaining
+  readonly nonExhaustive: never
+}
+```
+
+No value of this type can be produced — `nonExhaustive` is typed `never` — so the call cannot be
+satisfied. That is the entire point: the diagnostic is the feature, not the value. TypeScript reports
+the missing argument and names this type, whose `missingCases` parameter spells out on hover exactly
+which subject values are unhandled:
+
+```
+Argument of type 'string' is not assignable to parameter of
+type 'NonExhaustive<"archived" | "draft">'.
+```
+
 ### `MatcherHandler<T>`
 
 Deprecated alias for `Handler<T>`.
@@ -110,6 +161,7 @@ export interface MatchChain<TSubject, TResult = never> {
   otherwise: (handler: Handler<TResult>) => TResult
   default: (handler: Handler<TResult>) => TResult
   get: () => TResult
+  exhaustive: () => TResult
   /** @deprecated use get() */
   valueOf: () => TResult
   run: () => boolean
@@ -118,7 +170,8 @@ export interface MatchChain<TSubject, TResult = never> {
 ```
 
 Simplified for readability: the real declaration threads an extra inference type parameter through
-each method so handler return types accumulate. See
+each method so handler return types accumulate, and carries a phantom `TRemaining` parameter that
+`exhaustive()` reads to decide whether the chain is complete. See
 [Inferred vs Pinned Result Types](/guide/type-safety#inferred-vs-pinned-result-types).
 
 **Type Parameters:**
@@ -126,6 +179,11 @@ each method so handler return types accumulate. See
 - `TSubject` - The type of values being matched
 - `TResult` - The accumulated return type of handler functions. Leave it at its `never` default to
   have handler return types inferred; pass it explicitly to pin the chain.
+- `TPinned` - Internal. Whether `TResult` was pinned by the consumer rather than inferred; derived
+  from `TResult` and never passed by hand.
+- `TRemaining` - Internal. The subject values no arm has covered yet. It starts as `TSubject` and
+  shrinks as literal patterns are added; reaching `never` is what unlocks
+  [`exhaustive()`](/api/#exhaustive-tresult).
 
 **Example:**
 

@@ -10,6 +10,7 @@ class Matcher<TSubject, TResult> implements MatchChain<TSubject, TResult> {
   otherwise(handler: () => TResult): TResult
   default(handler: () => TResult): TResult
   get(): TResult
+  exhaustive(): TResult
   /** @deprecated alias for get() */
   valueOf(): TResult
   run(): boolean
@@ -28,6 +29,11 @@ The `Matcher` class implements the match expression pattern with eager execution
 
 - `TSubject` - The type of values being matched
 - `TResult` - The return type of handler functions
+- `TPinned` - Internal, derived from `TResult`: whether the chain's result type was pinned by the
+  consumer or is being inferred from handlers
+- `TRemaining` - Internal, phantom: the subject values no arm has covered yet. Nothing at runtime
+  reads it; it exists so [`exhaustive()`](#exhaustive-tresult) can refuse to compile while cases are
+  outstanding.
 
 ## Constructor
 
@@ -195,6 +201,49 @@ try {
   }
 }
 ```
+
+### `exhaustive(): TResult`
+
+The checked counterpart to [`get()`](#get-tresult). Resolves the chain, but only compiles once every
+member of the subject's union has an arm.
+
+```typescript
+const result = matcher.exhaustive()
+```
+
+**Returns:** `TResult` - The result from the matched handler
+
+**Throws:** `UnhandledMatchError` if no case matched at runtime
+
+**Example:**
+
+```typescript
+import { match } from '@anilkumarthakur/match'
+
+type Status = 'active' | 'archived' | 'draft'
+
+const label = (status: Status): string =>
+  match<Status, string>(status)
+    .on('active', () => 'Live')
+    .on('archived', () => 'Archived')
+    .on('draft', () => 'Draft')
+    .exhaustive()
+```
+
+Drop an arm and the call stops compiling, naming the gap as
+`NonExhaustive<"draft">`. The real payoff arrives later: add a member to `Status` and every
+`.exhaustive()` chain over it fails the build until handled, where an `.otherwise()` would have
+quietly taken the fallback.
+
+::: warning Only literal arms count
+A predicate's outcome is not knowable statically, so a guard leaves the remainder untouched and
+`exhaustive()` stays unavailable. Use [`otherwise()`](#otherwise-handler-tresult) on guard-driven
+chains. Open-ended subjects (`string`, `number`) are likewise never exhaustible — narrow to a union
+first.
+:::
+
+It still throws at runtime: the guarantee is only as strong as the subject's declared type, and an
+unvalidated payload cast to `Status` can reach a chain the compiler believes is total.
 
 ### `valueOf(): TResult`
 

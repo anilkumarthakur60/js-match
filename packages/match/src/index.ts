@@ -22,10 +22,22 @@
  *   .otherwise(() => 'Unknown')
  * ```
  *
+ * @example Checked Exhaustiveness
+ * ```typescript
+ * type Status = 'active' | 'archived'
+ *
+ * // Fails to compile if a Status gains a member and this chain is not updated.
+ * const label = match<Status, string>(status)
+ *   .on('active', () => 'Live')
+ *   .on('archived', () => 'Archived')
+ *   .exhaustive()
+ * ```
+ *
  * @packageDocumentation
  */
 
 export { match, Matcher } from './matcher'
+export { allOf, anyOf, not } from './guards'
 export { UnhandledMatchError } from './errors'
 // `MatcherHandler` is deprecated in favour of `Handler`, but it stays exported
 // so existing consumers keep compiling — removing it would be a breaking
@@ -36,7 +48,9 @@ export type {
   MatchChain,
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   MatcherHandler,
+  NonExhaustive,
   Pattern,
   Predicate,
-  ResultHandler
+  ResultHandler,
+  Unmatched
 } from './types'

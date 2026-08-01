@@ -38,7 +38,7 @@ const result = match<number | string, boolean>(42)
 
 ## Union Types
 
-Match on union types for exhaustiveness:
+Match on union types, covering every member:
 
 ```typescript
 type Status = 'pending' | 'active' | 'inactive' | 'deleted'
@@ -49,11 +49,117 @@ const getStatusLabel = (status: Status): string => {
     .on('active', () => 'Active')
     .on('inactive', () => 'Inactive')
     .on('deleted', () => 'Deleted')
-    .otherwise(() => 'Unknown') // Never reached, but good practice
+    .otherwise(() => 'Unknown') // Never reached
 }
 
 console.log(getStatusLabel('active')) // "Active"
 ```
+
+That trailing `otherwise()` is unreachable, and it is also load-bearing in the wrong way: it is what
+lets a _new_ `Status` member slip through silently. Prefer `exhaustive()` when you want the compiler
+to notice.
+
+## Checked Exhaustiveness
+
+`exhaustive()` resolves a chain with no fallback at all, and only compiles once every member of the
+subject's union has an arm:
+
+```typescript
+type Status = 'pending' | 'active' | 'inactive' | 'deleted'
+
+const getStatusLabel = (status: Status): string =>
+  match<Status, string>(status)
+    .on('pending', () => 'Pending Review')
+    .on('active', () => 'Active')
+    .on('inactive', () => 'Inactive')
+    .on('deleted', () => 'Deleted')
+    .exhaustive()
+```
+
+Remove an arm and the call fails to compile:
+
+```typescript
+match<Status, string>(status)
+  .on('pending', () => 'Pending Review')
+  .on('active', () => 'Active')
+  .exhaustive()
+// ✗ Expected 1 arguments, but got 0.
+//   Parameter type: NonExhaustive<"inactive" | "deleted">
+```
+
+The point is not catching today's typo — it is the change six months from now. Add `'archived'` to
+`Status` and **every** `exhaustive()` chain over it stops compiling until handled. The `otherwise()`
+version above keeps compiling and silently returns `'Unknown'`.
+
+`onAny()` covers every value it lists, so it participates too:
+
+```typescript
+match<Status, string>(status)
+  .onAny(['pending', 'active'], () => 'Open')
+  .onAny(['inactive', 'deleted'], () => 'Closed')
+  .exhaustive() // ✅ all four covered
+```
+
+### What counts as coverage
+
+Only **literal** arms. A predicate's result cannot be evaluated by the type system, so a guard leaves
+the remainder untouched:
+
+```typescript
+match<Status, string>(status)
+  .on('pending', () => 'Open')
+  .on(
+    (s) => s !== 'pending',
+    () => 'Other'
+  ) // covers the rest at runtime...
+  .exhaustive() // ...but ✗ still: a guard proves nothing statically
+```
+
+This is deliberate. The alternative — trusting a guard — would be a guarantee the library cannot
+honour. Use `otherwise()` on guard-driven chains.
+
+Open-ended subject types are never exhaustible, for the same reason:
+
+```typescript
+const f = (s: string) =>
+  match<string, string>(s)
+    .on('a', () => 'A')
+    .exhaustive() // ✗ `string` has infinitely many remaining values
+```
+
+Narrow the subject to a union first.
+
+### It still throws at runtime
+
+The guarantee is only as strong as the subject's declared type. A value that dodged the type system —
+an unvalidated API payload, a cast — can reach a chain the compiler believes is total, so
+`exhaustive()` keeps `get()`'s runtime behaviour:
+
+```typescript
+const smuggled = 'archived' as Status
+
+match<Status, string>(smuggled)
+  .on('pending', () => 'Open')
+  .on('active', () => 'Active')
+  .on('inactive', () => 'Inactive')
+  .on('deleted', () => 'Deleted')
+  .exhaustive() // compiles, then throws UnhandledMatchError
+```
+
+A loud error beats a silent `undefined`. Validate at the boundary and the two agree.
+
+### A TypeScript gotcha with inferred subjects
+
+Control-flow analysis narrows an annotated `const` to the literal it was assigned, so the inferred
+subject type follows suit:
+
+```typescript
+const status: Status = 'active'
+match(status).on('pending', () => 1) // ✗ TSubject inferred as 'active', not Status
+```
+
+Pass the subject as a function parameter (as in the examples above), or pin it explicitly with
+`match<Status, string>(status)`, and the full union survives.
 
 ## Strict Type Checking
 

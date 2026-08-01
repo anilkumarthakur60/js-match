@@ -24,6 +24,9 @@ import {
 ### Functions
 
 - [`match(subject)`](/api/match) - Create a new match expression
+- [`not(predicate)`](#guard-combinators) - Negate a guard
+- [`allOf(...predicates)`](#guard-combinators) - Require every guard
+- [`anyOf(...predicates)`](#guard-combinators) - Require at least one guard
 
 ### Classes
 
@@ -36,21 +39,25 @@ import {
 - [`Predicate<T>`](/api/types#predicate-t) - Guard function type, `(value: T) => boolean`
 - [`Pattern<TSubject>`](/api/types#pattern-tsubject) - What `on()` accepts: a literal or a predicate
 - `MatchChain<TSubject, TResult>` - Interface describing the full chain surface
+- [`Unmatched<...>`](/api/types#unmatched-tsubject-tremaining-tpattern) - Cases left after one arm
+- [`NonExhaustive<T>`](/api/types#nonexhaustive-tremaining) - The argument `exhaustive()` demands
+  while cases are missing
 - `MatcherHandler<T>` - Deprecated alias for `Handler<T>`
 
 ## Quick Reference
 
-| Method                    | Purpose                             | Returns                      |
-| ------------------------- | ----------------------------------- | ---------------------------- |
-| `match(subject)`          | Create matcher                      | `Matcher<TSubject, TResult>` |
-| `.on(pattern, handler)`   | Add a literal or predicate case     | `this` (for chaining)        |
-| `.onAny(values, handler)` | Add multiple literal cases          | `this` (for chaining)        |
-| `.otherwise(handler)`     | Set default & resolve               | `TResult`                    |
-| `.default(handler)`       | PHP alias for `otherwise()`         | `TResult`                    |
-| `.get()`                  | Resolve without default (may throw) | `TResult`                    |
-| `.valueOf()`              | Deprecated alias for `get()`        | `TResult`                    |
-| `.run()`                  | Resolve to "did anything match?"    | `boolean`                    |
-| `.isMatched`              | Inspect match state (getter)        | `boolean`                    |
+| Method                    | Purpose                                | Returns                      |
+| ------------------------- | -------------------------------------- | ---------------------------- |
+| `match(subject)`          | Create matcher                         | `Matcher<TSubject, TResult>` |
+| `.on(pattern, handler)`   | Add a literal or predicate case        | `this` (for chaining)        |
+| `.onAny(values, handler)` | Add multiple literal cases             | `this` (for chaining)        |
+| `.otherwise(handler)`     | Set default & resolve                  | `TResult`                    |
+| `.default(handler)`       | PHP alias for `otherwise()`            | `TResult`                    |
+| `.get()`                  | Resolve without default (may throw)    | `TResult`                    |
+| `.exhaustive()`           | Resolve, requiring every case at build | `TResult`                    |
+| `.valueOf()`              | Deprecated alias for `get()`           | `TResult`                    |
+| `.run()`                  | Resolve to "did anything match?"       | `boolean`                    |
+| `.isMatched`              | Inspect match state (getter)           | `boolean`                    |
 
 ## Method Documentation
 
@@ -177,6 +184,63 @@ const result = match(value)
   .on('case', () => 'result')
   .get() // Must have matched!
 ```
+
+### `.exhaustive(): TResult`
+
+The checked counterpart to `get()`: resolves the chain, but only compiles once every member of the
+subject's union has an arm.
+
+**Returns:** The result from the matched handler
+
+**Throws:** `UnhandledMatchError` if no case matched at runtime
+
+**Example:**
+
+```typescript
+type Status = 'active' | 'archived' | 'draft'
+
+const label = (status: Status): string =>
+  match<Status, string>(status)
+    .on('active', () => 'Live')
+    .on('archived', () => 'Archived')
+    .on('draft', () => 'Draft')
+    .exhaustive() // ✅ nothing left over
+```
+
+Remove the `'draft'` arm and the call fails to compile with
+`Expected 1 arguments, but got 0` — the expected parameter is `NonExhaustive<"draft">`, naming the
+gap. Add a member to `Status` later and every `.exhaustive()` chain over it breaks until handled.
+
+Only literal arms count towards coverage: a predicate's outcome is not statically knowable, so a
+guard leaves the remainder intact. Open-ended subjects (`string`, `number`) are never exhaustible.
+See [Type Safety](/guide/type-safety) for the full rules.
+
+### Guard combinators
+
+`not`, `allOf` and `anyOf` build one `Predicate<T>` out of several, so a composed condition stays
+readable at the call site.
+
+```typescript
+import { allOf, anyOf, match, not } from '@anilkumarthakur/match'
+
+match(user)
+  .on(allOf(isVerified, not(isSuspended)), () => 'ok')
+  .on(anyOf(isAdmin, isOwner), () => 'privileged')
+  .otherwise(() => 'blocked')
+```
+
+| Helper                 | Matches when                   | With no arguments      |
+| ---------------------- | ------------------------------ | ---------------------- |
+| `not(p)`               | `p` does not match             | n/a                    |
+| `allOf(...predicates)` | every predicate matches        | matches **everything** |
+| `anyOf(...predicates)` | at least one predicate matches | matches **nothing**    |
+
+Evaluation short-circuits left to right, like `&&` and `||`. The empty cases follow
+`Array.prototype.every`/`some`, making it safe to spread a possibly-empty condition list.
+
+::: tip
+`anyOf` composes _conditions_; `.onAny()` compares the subject against a list of _values_.
+:::
 
 ### `.valueOf(): TResult`
 
