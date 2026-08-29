@@ -40,8 +40,8 @@ specifier resolves to the browser build and everything lands on the `JsMatch` gl
 
 Works in all modern browsers, and the build targets ES2022. The published `engines.node` range is
 `>=22`; installing on Node 20 or older fails with `EBADENGINE` (npm) or
-`ERR_PNPM_UNSUPPORTED_ENGINE` (pnpm). The floor tracks Node.js LTS — it is the oldest LTS line still
-in maintenance and rises as older lines reach end-of-life — so the supported runtimes are:
+`ERR_PNPM_UNSUPPORTED_ENGINE` (pnpm). The floor tracks Node.js LTS  it is the oldest LTS line still
+in maintenance and rises as older lines reach end-of-life  so the supported runtimes are:
 
 - Chrome/Edge (latest)
 - Firefox (latest)
@@ -66,7 +66,7 @@ const { match } = require('@anilkumarthakur/match')
 
 ### IIFE / browser global
 
-There is **no UMD build** — the browser bundle is a bare IIFE with no AMD or CommonJS detection. It
+There is **no UMD build**  the browser bundle is a bare IIFE with no AMD or CommonJS detection. It
 ships as `dist/index.global.js` and assigns the `JsMatch` global:
 
 ```html
@@ -83,7 +83,7 @@ The package comes with complete TypeScript definitions. No additional installati
 ```typescript
 import { match, type Handler, type MatchChain } from '@anilkumarthakur/match'
 
-// Result type inferred from the handlers — `result` is number
+// Result type inferred from the handlers  `result` is number
 const result = match('test')
   .on('test', () => 123)
   .otherwise(() => 456)

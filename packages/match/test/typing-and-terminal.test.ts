@@ -160,8 +160,8 @@ describe('function-valued subjects mirror the runtime rule', () => {
     // through, so the type withdraws the predicate arm here.
     const result = match(fn)
       .on(
-        // The directive must sit on the line the error is reported on — the
-        // argument, not the `.on(` call — or it is flagged unused (TS2578).
+        // The directive must sit on the line the error is reported on  the
+        // argument, not the `.on(` call  or it is flagged unused (TS2578).
         // @ts-expect-error predicates are not accepted when the subject is a function
         (f: () => string) => f().length > 0,
         () => 'predicate ran'

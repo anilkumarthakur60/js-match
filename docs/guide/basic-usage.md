@@ -19,7 +19,7 @@ Where:
 
 ## Eager Execution
 
-Handlers execute **immediately** when matched—you don't need `.otherwise()` or `.get()` for side effects:
+Handlers execute **immediately** when matchedyou don't need `.otherwise()` or `.get()` for side effects:
 
 ```typescript
 import { match } from '@anilkumarthakur/match'
@@ -151,7 +151,7 @@ try {
 ### `valueOf()` is a deprecated alias
 
 `valueOf()` does the same thing, but `valueOf` is JavaScript's own `ToPrimitive` hook, so the
-engine calls it on _any_ implicit coercion — string concatenation, `==`, arithmetic, a sort
+engine calls it on _any_ implicit coercion  string concatenation, `==`, arithmetic, a sort
 comparator. On an unmatched chain that makes `UnhandledMatchError` surface from an expression that
 never mentions the method:
 
@@ -229,13 +229,13 @@ Literal comparison uses `Object.is()`, **not** `===`. The two diverge on exactly
 both differences are deliberate:
 
 ```typescript
-// NaN matches NaN — `NaN === NaN` is false, `Object.is(NaN, NaN)` is true
+// NaN matches NaN  `NaN === NaN` is false, `Object.is(NaN, NaN)` is true
 match(NaN)
   .on(NaN, () => 'matched!')
   .otherwise(() => 'no match')
 // Result: "matched!"
 
-// +0 and -0 are distinct — `+0 === -0` is true, `Object.is(+0, -0)` is false
+// +0 and -0 are distinct  `+0 === -0` is true, `Object.is(+0, -0)` is false
 match(+0)
   .on(-0, () => 'negative zero')
   .on(+0, () => 'positive zero')
@@ -255,7 +255,7 @@ match(NaN)
 ## Function Subjects
 
 Functions are matched by reference, which means a function-valued subject switches predicate
-matching **off** for the whole chain — the pattern is compared to the subject instead of being
+matching **off** for the whole chain  the pattern is compared to the subject instead of being
 called:
 
 ```typescript
@@ -277,7 +277,7 @@ match(fn)
 
 This is the only way a function value could stay matchable literally, but the failure mode is quiet:
 no error, the case simply does not fire. In TypeScript the `Pattern<TSubject>` type withdraws the
-predicate arm when the subject type is a function, so the mistake is a compile error — but plain
+predicate arm when the subject type is a function, so the mistake is a compile error  but plain
 JavaScript, and subjects whose declared type is a _union_ containing a function, get no warning.
 
 If you need guards over a function value, match on something else: `match(true)` with boolean
@@ -294,7 +294,7 @@ match(code)
   .otherwise(() => 'Error')
 
 // Complex handlers with logic.
-// Handlers take NO arguments — `Handler<T>` is `() => T`, and every handler is
+// Handlers take NO arguments  `Handler<T>` is `() => T`, and every handler is
 // invoked with zero arguments, including the one passed to otherwise(). Close
 // over the subject rather than declaring a parameter for it.
 match(user)

@@ -132,7 +132,7 @@ each method so handler return types accumulate. See
 ```typescript
 import { match, type MatchChain } from '@anilkumarthakur/match'
 
-// Fresh chain — no handler has contributed a type yet, so TResult is still `never`
+// Fresh chain  no handler has contributed a type yet, so TResult is still `never`
 const fresh: MatchChain<string> = match('test')
 
 // Inferred: name the type the handlers accumulated. `MatchChain<string>` would

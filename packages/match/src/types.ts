@@ -81,7 +81,7 @@ export type IsPinned<TResult> = [TResult] extends [never] ? false : true
  * The handler type a chain accepts.
  *
  * On an inferring chain the handler's return type is an inference site, so `R`
- * is captured and unioned into the chain's result type — that is what makes
+ * is captured and unioned into the chain's result type  that is what makes
  * `match('a').on('a', () => 42).otherwise(() => 0)` resolve to `number` instead
  * of `unknown`, and what turns a chain of disagreeing handlers into a union.
  *
@@ -115,10 +115,10 @@ export type ResultHandler<
  *
  * @example
  * ```typescript
- * // Inferred result type — the handlers decide it.
+ * // Inferred result type  the handlers decide it.
  * const chain: MatchChain<string> = match('a').on('a', () => 1)
  *
- * // Pinned result type — every handler must return number.
+ * // Pinned result type  every handler must return number.
  * const pinned: MatchChain<string, number> = match<string, number>('a')
  * ```
  */
@@ -190,7 +190,7 @@ export interface MatchChain<
    * Deprecated alias for `get()`
    *
    * @deprecated Use `get()`. `valueOf` is part of JS's ToPrimitive protocol, so
-   *   it also runs on implicit coercion — see the note on `Matcher#valueOf`.
+   *   it also runs on implicit coercion  see the note on `Matcher#valueOf`.
    * @returns The result from the matched handler
    */
   valueOf: () => TResult

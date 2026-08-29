@@ -130,7 +130,7 @@ export class Matcher<
    * Deprecated alias for {@link Matcher.get}
    *
    * `valueOf` is a slot in JS's ToPrimitive protocol, so the engine calls it on
-   * any implicit coercion — `matcher + 1`, `matcher == x`, a sort comparator.
+   * any implicit coercion  `matcher + 1`, `matcher == x`, a sort comparator.
    * That makes an unmatched chain throw UnhandledMatchError from expressions
    * that never mention the method, and a matched chain leak its result into
    * arithmetic. The behaviour is kept for backwards compatibility, but reach
@@ -176,7 +176,7 @@ export class Matcher<
  *
  * The result type defaults to `never` rather than `unknown` so that each
  * handler's return type is an inference site and the chain accumulates their
- * union — `match('a').on('a', () => 42)` resolves to `number`, not `unknown`.
+ * union  `match('a').on('a', () => 42)` resolves to `number`, not `unknown`.
  * Passing both type arguments explicitly (`match<string, string>(x)`) still
  * pins every handler to that one type, as before.
  */

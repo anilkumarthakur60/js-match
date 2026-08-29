@@ -28,7 +28,7 @@ features:
     details: Clean, expressive syntax inspired by PHP match expressions
   - icon: 🚀
     title: Fast
-    details: Eager, allocation-free matching — one Object.is per case, no lookup table to build
+    details: Eager, allocation-free matching  one Object.is per case, no lookup table to build
   - icon: 📦
     title: Lightweight
     details: Zero dependencies, ~1 KB gzipped

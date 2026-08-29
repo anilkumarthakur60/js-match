@@ -17,7 +17,7 @@ class Matcher<TSubject, TResult> implements MatchChain<TSubject, TResult> {
 }
 ```
 
-`Pattern<TSubject>` is `TSubject | Predicate<TSubject>` — except when `TSubject` is itself a
+`Pattern<TSubject>` is `TSubject | Predicate<TSubject>`  except when `TSubject` is itself a
 function type, where the predicate arm is withdrawn. See [Function Subjects](#function-subjects).
 
 ## Description
@@ -203,7 +203,7 @@ Use [`get()`](#get-tresult). `valueOf()` is kept only for backwards compatibilit
 :::
 
 Identical behaviour to `get()`, but `valueOf` is a slot in JavaScript's `ToPrimitive` protocol, so
-the engine invokes it on any implicit coercion — `matcher + 1`, `matcher == x`, a sort comparator,
+the engine invokes it on any implicit coercion  `matcher + 1`, `matcher == x`, a sort comparator,
 string interpolation via `String()`. Two consequences:
 
 - an unmatched chain throws `UnhandledMatchError` from an expression that never mentions the method;
@@ -211,7 +211,7 @@ string interpolation via `String()`. Two consequences:
 
 ```typescript
 const matched = match(1).on(1, () => 'one')
-matched + '' // "one" — the result leaks out via coercion
+matched + '' // "one"  the result leaks out via coercion
 
 const unmatched = match(1).on(2, () => 'two')
 unmatched + '' // throws UnhandledMatchError: Unhandled match value: 1
@@ -321,7 +321,7 @@ match(fn)
   .on(
     (v) => true,
     () => 'predicate ran'
-  ) // never invoked — no error, no warning
+  ) // never invoked  no error, no warning
   .otherwise(() => 'fell through')
 // Result: "fell through"
 
@@ -333,7 +333,7 @@ match(fn)
 
 `Pattern<TSubject>` encodes this rule in the type system, so in TypeScript passing a predicate for a
 function subject is a compile error. Two gaps remain: plain JavaScript, and subjects whose declared
-type is a _union_ containing a function — there the decision is value-dependent, so both arms stay
+type is a _union_ containing a function  there the decision is value-dependent, so both arms stay
 available and the silent fall-through is reachable.
 
 ## Complete Example

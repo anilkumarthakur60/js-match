@@ -10,7 +10,7 @@ Welcome to the @anilkumarthakur/match documentation. This guide will help you un
 
 - **Type-Safe**: Full TypeScript support with generic types
 - **Readable**: Clean, expressive syntax
-- **Fast**: Eager, allocation-free matching — one `Object.is` per case, no lookup table to build
+- **Fast**: Eager, allocation-free matching  one `Object.is` per case, no lookup table to build
 - **Guards**: Predicate functions as well as literals, the headline extension over PHP's `match`
 - **Lightweight**: Zero dependencies, ~1 KB gzipped
 - **Well-Tested**: Comprehensive test suite at 100% code coverage

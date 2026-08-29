@@ -2,7 +2,7 @@
  * Node + TypeScript demo of @anilkumarthakur/match.
  *
  * This imports the package by its published name, so it exercises the real
- * `exports` map and the emitted `.d.ts` — if either regresses, `pnpm build`
+ * `exports` map and the emitted `.d.ts`  if either regresses, `pnpm build`
  * in this example fails.
  *
  * Run it with:  pnpm --filter example-playground start
@@ -57,7 +57,7 @@ console.log(
 )
 
 // 5. No default -> get() throws UnhandledMatchError -------------------------
-// (`valueOf()` is the deprecated alias — it doubles as JS's ToPrimitive hook,
+// (`valueOf()` is the deprecated alias  it doubles as JS's ToPrimitive hook,
 // so coercing a matcher would resolve it implicitly.)
 try {
   match<string, string>('unmatched')

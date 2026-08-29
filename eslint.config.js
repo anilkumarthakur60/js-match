@@ -48,7 +48,7 @@ export default tseslint.config(
   },
 
   // Tests: same parser, but a suite whose whole job is exercising edge cases
-  // trips the strict rules on purpose — empty handlers, empty classes as match
+  // trips the strict rules on purpose  empty handlers, empty classes as match
   // subjects, `+x` coercion, statically-decidable guards for the `match(true)`
   // pattern. Flagging those is noise, not signal, so they are off here only.
   {

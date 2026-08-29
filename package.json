@@ -2,7 +2,7 @@
   "name": "js-match",
   "private": true,
   "type": "module",
-  "description": "Monorepo for @anilkumarthakur/match — PHP-style match expressions for JavaScript/TypeScript.",
+  "description": "Monorepo for @anilkumarthakur/match  PHP-style match expressions for JavaScript/TypeScript.",
   "license": "MIT",
   "author": {
     "name": "Anil Kumar Thakur",

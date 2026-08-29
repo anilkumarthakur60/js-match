@@ -72,7 +72,7 @@ const matcher = match(statusCode)
 
 ### `.on(pattern: Pattern<TSubject>, handler: () => TResult): this`
 
-Adds a case. `pattern` is either a literal value, compared with `Object.is()` — **not** `===` — or a
+Adds a case. `pattern` is either a literal value, compared with `Object.is()`  **not** `===`  or a
 predicate function `(subject) => boolean`.
 
 **Parameters:**
@@ -134,7 +134,7 @@ Sets default handler and executes the match.
 **Returns:** The result from matched handler or default
 
 **Throws:** Whatever the handler throws. `otherwise()` itself never throws
-`UnhandledMatchError` — supplying a fallback is precisely what rules that out.
+`UnhandledMatchError`  supplying a fallback is precisely what rules that out.
 
 **Example:**
 
@@ -193,7 +193,7 @@ matcher + '' // throws UnhandledMatchError: Unhandled match value: 1
 ### `.run(): boolean`
 
 Resolves the chain to whether anything matched, for side-effect-only patterns. Handlers have
-already run by this point — matching is eager.
+already run by this point  matching is eager.
 
 **Returns:** `true` if a case matched, `false` otherwise
 

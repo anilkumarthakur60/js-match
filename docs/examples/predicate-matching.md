@@ -256,7 +256,7 @@ console.log(summarizeArray(Array.from({ length: 1000 }, (_, i) => i))) // "Huge 
 ## Mixing Literals and Predicates
 
 Combine both for maximum flexibility. The subject has to be the value your **literals** compare
-against — here `doc.type`, not `doc` — and the predicates then close over the rest of the object:
+against  here `doc.type`, not `doc`  and the predicates then close over the rest of the object:
 
 ```typescript
 interface Document {
@@ -288,7 +288,7 @@ console.log(documentStatus({ type: 'xls', size: 8 * 1024 * 1024 })) // "Large fi
 
 ::: warning Don't mix an object subject with literal patterns
 If the subject were `doc` (the whole object), `.on('pdf', ...)` would compare `Object.is(doc, 'pdf')`
-— always `false`. The predicates would still fire, so the chain looks like it works while every
+ always `false`. The predicates would still fire, so the chain looks like it works while every
 literal case is silently dead, and a small PDF would fall through to `'Unknown format'`. Literals
 are compared against the subject itself, never against one of its properties.
 :::

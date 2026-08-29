@@ -8,7 +8,7 @@ import { defineConfig } from 'tsup'
  * carries no internal relative specifiers. That matters: extensionless
  * relative specifiers are illegal under `moduleResolution: "node16"`, and
  * because almost every consumer runs `skipLibCheck: true` the diagnostic is
- * swallowed while resolution still fails — silently degrading the whole public
+ * swallowed while resolution still fails  silently degrading the whole public
  * API to `any`. `scripts/check-dist.mjs` asserts this stays true.
  *
  * No sourcemaps: they would dominate the tarball of a library this small, they

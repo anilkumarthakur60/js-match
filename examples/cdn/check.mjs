@@ -2,7 +2,7 @@
  * Smoke-test for the browser/CDN global build.
  *
  * The HTML demo cannot run in CI, so this loads the exact same bundle in a
- * bare sandbox — no Node globals — and asserts the global is exposed and
+ * bare sandbox  no Node globals  and asserts the global is exposed and
  * behaves. Anything the bundle needed beyond standard JS would fail here
  * rather than silently working in Node and breaking in a real browser.
  *
@@ -77,4 +77,4 @@ assert.throws(
 )
 
 const sizeKb = (Buffer.byteLength(code) / 1024).toFixed(1)
-console.log(`[cdn] OK — global build works (JsMatch, ${sizeKb} KB).`)
+console.log(`[cdn] OK  global build works (JsMatch, ${sizeKb} KB).`)

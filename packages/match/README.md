@@ -13,8 +13,8 @@ PHP-style match expressions for JavaScript/TypeScript with 100% type safety and 
 
 ✨ **Type-Safe**: Full TypeScript support with generic types for subject and result  
 🎯 **Readable**: Clean, expressive syntax inspired by PHP match expressions  
-🚀 **Fast**: Eager, allocation-free matching — a single `Object.is` per case, no lookup table to build  
-🛡️ **Guards**: Predicate functions, not just literals — the headline extension over PHP's `match`  
+🚀 **Fast**: Eager, allocation-free matching  a single `Object.is` per case, no lookup table to build  
+🛡️ **Guards**: Predicate functions, not just literals  the headline extension over PHP's `match`  
 📦 **Lightweight**: Zero dependencies, ~1 KB gzipped (ES module)  
 🧪 **Well-Tested**: Comprehensive test suite at 100% code coverage  
 🔗 **Chainable**: Fluent API for method chaining  
@@ -43,7 +43,7 @@ bun add @anilkumarthakur/match
 ### CDN (browser global)
 
 `unpkg` and `jsDelivr` resolve the bare package specifier to `dist/index.global.js`, an IIFE bundle
-that exposes everything on the `JsMatch` global. There is no UMD build — the bundle performs no
+that exposes everything on the `JsMatch` global. There is no UMD build  the bundle performs no
 AMD/CommonJS detection.
 
 ```html
@@ -181,7 +181,7 @@ const result = match('test')
 Deprecated alias for [`get()`](#get-tresult). Prefer `get()`.
 
 `valueOf` is JavaScript's own `ToPrimitive` hook, so the engine calls it implicitly whenever a
-matcher is coerced — string concatenation, `==`, arithmetic. On an unmatched chain that means an
+matcher is coerced  string concatenation, `==`, arithmetic. On an unmatched chain that means an
 `UnhandledMatchError` can surface from an expression that never mentions `valueOf`:
 
 ```typescript
@@ -275,7 +275,7 @@ console.log(grade(85)) // "B"
 console.log(grade(45)) // "F"
 ```
 
-Literals and predicates mix freely in one chain — first match wins either way:
+Literals and predicates mix freely in one chain  first match wins either way:
 
 ```typescript
 const describe = (score: number | string): string => {
@@ -294,7 +294,7 @@ console.log(describe(60)) // "Low"
 ```
 
 > **A function subject disables predicate matching.** When the subject is itself a function, `on()`
-> compares patterns by reference instead of calling them — otherwise you could never match a
+> compares patterns by reference instead of calling them  otherwise you could never match a
 > function value literally. The predicate is silently never invoked and the case just falls
 > through, with no error. See [Supported Types](#supported-types).
 
@@ -479,12 +479,12 @@ The library supports matching on any JavaScript type. Literal comparison uses `O
 The two operators diverge on exactly two values, and the difference is deliberate:
 
 ```typescript
-// NaN matches NaN — `NaN === NaN` is false, `Object.is(NaN, NaN)` is true
+// NaN matches NaN  `NaN === NaN` is false, `Object.is(NaN, NaN)` is true
 match(NaN)
   .on(NaN, () => 'matched NaN')
   .otherwise(() => 'no match') // → "matched NaN"
 
-// +0 and -0 are distinct — `+0 === -0` is true, `Object.is(+0, -0)` is false
+// +0 and -0 are distinct  `+0 === -0` is true, `Object.is(+0, -0)` is false
 match(+0)
   .on(-0, () => 'negative zero')
   .on(+0, () => 'positive zero')
@@ -496,7 +496,7 @@ match(+0)
 ### Function subjects
 
 Because functions are matched by reference, a function-valued subject turns off predicate matching
-for the whole chain — the pattern is compared to the subject rather than called:
+for the whole chain  the pattern is compared to the subject rather than called:
 
 ```typescript
 const fn = () => 'subject'
@@ -513,7 +513,7 @@ match(fn)
   .otherwise(() => 'no match') // → "matched by reference"
 ```
 
-There is no error or warning — the case simply does not fire. If you need guards over a function
+There is no error or warning  the case simply does not fire. If you need guards over a function
 value, match on something else (`match(true)` with boolean conditions, or a derived key).
 
 ## Type Safety
@@ -542,7 +542,7 @@ const result3 = match<Status, string>('success')
 
 ## Performance
 
-- ⚡ Sequential `Object.is()` scan — O(N) in the number of cases, with no `Map` and no lookup table
+- ⚡ Sequential `Object.is()` scan  O(N) in the number of cases, with no `Map` and no lookup table
   to allocate. Eager chaining is what makes that inherent: a handler must be able to run the moment
   its `.on()` is evaluated, so there is nothing to index ahead of time. For the case counts a
   `match` expression realistically has, a few identity comparisons beat building a hash map.
@@ -578,8 +578,8 @@ Test categories:
 ## Browser Support
 
 Works in all modern browsers. The published `engines.node` range is `>=22`, and the build targets
-ES2022. The Node floor follows the LTS schedule — it is the oldest LTS line still in maintenance and
-rises as older lines reach end-of-life — so the supported runtimes are:
+ES2022. The Node floor follows the LTS schedule  it is the oldest LTS line still in maintenance and
+rises as older lines reach end-of-life  so the supported runtimes are:
 
 - Chrome/Edge (latest)
 - Firefox (latest)

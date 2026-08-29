@@ -4,7 +4,7 @@
  * This must be a *total* function: it runs inside `UnhandledMatchError`'s
  * constructor, so anything it throws would escape in place of the error the
  * caller is documented to catch, breaking `instanceof UnhandledMatchError`.
- * `JSON.stringify` alone is not total — it throws on BigInt and on circular
+ * `JSON.stringify` alone is not total  it throws on BigInt and on circular
  * structures, and it propagates whatever a user `toJSON()` hook throws.
  *
  * @param {unknown} value The value to describe
@@ -41,7 +41,7 @@ function describeValue(value: unknown): string {
     const json = JSON.stringify(value) as string | undefined
     if (json !== undefined) return json
   } catch {
-    // Circular reference or a throwing toJSON — fall through to the tag below.
+    // Circular reference or a throwing toJSON  fall through to the tag below.
   }
 
   try {

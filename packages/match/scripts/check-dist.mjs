@@ -1,14 +1,14 @@
 /**
  * Post-build guard.
  *
- * 1. SIZE BUDGET — this library is intentionally tiny and dependency-free.
+ * 1. SIZE BUDGET  this library is intentionally tiny and dependency-free.
  *    A sudden jump means something was pulled in that should not have been.
  *
- * 2. NODE16 DECLARATION RESOLUTION — assert no emitted declaration carries an
+ * 2. NODE16 DECLARATION RESOLUTION  assert no emitted declaration carries an
  *    extensionless relative specifier. Those are illegal under
  *    `moduleResolution: "node16"`/"nodenext", and since nearly every consumer
  *    runs `skipLibCheck: true` the diagnostic is swallowed while resolution
- *    still fails — silently degrading the public API to `any`.
+ *    still fails  silently degrading the public API to `any`.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve, join, relative } from 'node:path'

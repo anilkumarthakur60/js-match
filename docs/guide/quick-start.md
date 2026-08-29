@@ -19,7 +19,7 @@ console.log(result) // "Operation successful!"
 
 ### Eager Execution
 
-Handlers execute immediately when matched—no need for `.otherwise()` for side effects:
+Handlers execute immediately when matchedno need for `.otherwise()` for side effects:
 
 ```typescript
 let status = 'pending'
@@ -64,7 +64,7 @@ console.log(grade(45)) // "F"
 ```
 
 ::: warning A function subject turns predicates off
-When the subject is itself a function, patterns are compared by reference instead of being called —
+When the subject is itself a function, patterns are compared by reference instead of being called 
 otherwise a function value could never be matched literally. The predicate is silently never
 invoked and the case just falls through, with no error. TypeScript withdraws the predicate arm for
 function subjects, but in plain JavaScript nothing warns you. See
@@ -76,13 +76,13 @@ function subjects, but in plain JavaScript nothing warns you. See
 Matching uses `Object.is()`, which diverges from `===` on exactly two values:
 
 ```typescript
-// NaN matches NaN — `NaN === NaN` would be false
+// NaN matches NaN  `NaN === NaN` would be false
 match(NaN)
   .on(NaN, () => 'matched NaN!')
   .otherwise(() => 'no match')
 // Result: "matched NaN!"
 
-// +0 and -0 are distinct — `+0 === -0` would be true
+// +0 and -0 are distinct  `+0 === -0` would be true
 match(+0)
   .on(-0, () => 'negative zero')
   .on(+0, () => 'positive zero')
